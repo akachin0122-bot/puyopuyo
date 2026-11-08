@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-        <!-- ホーム画面追加用（PWA）設定 -->
+    <!-- ホーム画面追加用（PWA）設定 -->
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/jpeg" href="icon.jpg">
     <link rel="apple-touch-icon" href="icon.jpg">
@@ -44,7 +44,7 @@
             height: 100dvh;
             max-width: 480px;
             margin: 0 auto;
-            padding: 8px;
+            padding: 8px 8px 24px 8px; /* 下部に余白を確保 */
             box-sizing: border-box;
         }
 
@@ -235,7 +235,8 @@
                 <i class="fa-solid fa-rotate-right"></i>
                 <span class="text-[9px] font-bold mt-0.5">回転</span>
             </button>
-   <!-- 高速落下（連続落下） -->
+
+            <!-- 高速落下（連続落下） -->
             <button id="btn-down" class="btn-touch bg-amber-500 active:bg-amber-400 text-slate-950 text-lg sm:text-xl py-2.5 sm:py-3 rounded-xl flex items-center justify-center flex-col font-black">
                 <i class="fa-solid fa-arrow-down"></i>
                 <span class="text-[9px] font-black mt-0.5">高速落下</span>
@@ -304,8 +305,7 @@
                 audioCtx.resume();
             }
         }
-
-        function playSound(type) {
+function playSound(type) {
             if (!audioCtx) return;
             try {
                 const osc = audioCtx.createOscillator();
@@ -489,7 +489,8 @@
                 c2: colors[Math.floor(Math.random() * colors.length)]
             };
         }
-function spawnPiece() {
+
+        function spawnPiece() {
             currentPiece = nextPiece;
             nextPiece = createRandomPiece();
             drawNextPiece();
@@ -593,8 +594,7 @@ function spawnPiece() {
                 el.classList.add('opacity-0');
             }, 1200);
         }
-
-        async function lockPiece() {
+async function lockPiece() {
             isProcessing = true;
 
             const x1 = currentPiece.x;
@@ -736,7 +736,8 @@ function spawnPiece() {
                 await sleep(50);
             }
         }
-function draw() {
+
+        function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             // グリッド背景線
@@ -843,8 +844,7 @@ function draw() {
 
             targetCtx.restore();
         }
-
-        function gameLoop(time = 0) {
+function gameLoop(time = 0) {
             if (isGameOver || isPaused) return;
 
             const deltaTime = time - lastTime;
