@@ -77,6 +77,15 @@
             animation: pulse-glow 0.6s ease-in-out infinite;
         }
 
+        @keyframes fever-glow {
+            0%, 100% { filter: drop-shadow(0 0 15px rgba(234, 179, 8, 0.9)); }
+            50% { filter: drop-shadow(0 0 25px rgba(244, 63, 94, 1)); }
+        }
+
+        .fever-text {
+            animation: fever-glow 0.4s ease-in-out infinite;
+        }
+
         @keyframes level-up-anim {
             0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
             50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
@@ -87,14 +96,13 @@
             animation: level-up-anim 1.2s forwards ease-out;
         }
 
-        /* 画面縦幅に応じた柔軟なキャンバスサイズ自動微調整 */
         .game-main {
             flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
             width: 100%;
-            min-height: 0; /* Important for flex child scaling */
+            min-height: 0;
             position: relative;
         }
 
@@ -127,6 +135,7 @@
                 </h1>
                 <div class="flex items-center gap-1.5 mt-0.5">
                     <span class="text-[10px] text-amber-400 font-extrabold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-500/40" id="level-display">LV. 1</span>
+                    <span class="text-[10px] text-pink-400 font-extrabold bg-pink-950/80 px-1.5 py-0.5 rounded border border-pink-500/40 hidden" id="fever-badge">FEVER!</span>
                 </div>
             </div>
             
@@ -136,10 +145,12 @@
                 <div id="score" class="text-base sm:text-lg font-extrabold text-amber-300 leading-none">0</div>
             </div>
 
-            <!-- 最高連鎖 -->
-            <div class="text-center hidden sm:block">
-                <div class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">MAX CHAIN</div>
-                <div id="max-chain" class="text-sm font-bold text-pink-400 leading-none">0 連鎖</div>
+            <!-- フィーバーゲージ -->
+            <div class="text-center w-20">
+                <div class="text-[8px] text-amber-300 font-bold uppercase tracking-wider mb-0.5">FEVER GAUGE</div>
+                <div class="w-full bg-slate-950 rounded-full h-2 border border-slate-700 overflow-hidden">
+                    <div id="fever-bar" class="bg-gradient-to-r from-amber-400 to-pink-500 h-full w-0 transition-all duration-300"></div>
+                </div>
             </div>
 
             <!-- 機能ボタン群 -->
@@ -220,10 +231,17 @@
                         LEVEL UP!
                     </div>
                 </div>
+
+                <!-- フィーバーポップアップ -->
+                <div id="fever-pop" class="absolute top-1/2 left-1/2 pointer-events-none opacity-0 transition-all duration-300 z-30">
+                    <div class="fever-text text-4xl sm:text-5xl font-black text-amber-300 drop-shadow-[0_4px_10px_rgba(0,0,0,0.9)] whitespace-nowrap">
+                        FEVER MODE!!
+                    </div>
+                </div>
             </div>
         </main>
 
-        <!-- 常時固定 コントローラー -->
+       <!-- 常時固定 コントローラー -->
         <footer class="w-full grid grid-cols-5 gap-1.5 p-2 glass-panel rounded-2xl border border-slate-700/50 shrink-0">
             <!-- 左移動 -->
             <button id="btn-left" class="btn-touch bg-indigo-600 active:bg-indigo-500 text-white text-xl sm:text-2xl py-2.5 sm:py-3 rounded-xl flex items-center justify-center">
@@ -266,7 +284,8 @@
             1: { name: 'red',    main: '#ef4444', light: '#fca5a5', shadow: '#991b1b', eye: '#7f1d1d' },
             2: { name: 'blue',   main: '#3b82f6', light: '#93c5fd', shadow: '#1e40af', eye: '#1e3a8a' },
             3: { name: 'green',  main: '#22c55e', light: '#86efac', shadow: '#15803d', eye: '#14532d' },
-            4: { name: 'yellow', main: '#eab308', light: '#fde047', shadow: '#a16207', eye: '#713f12' }
+            4: { name: 'yellow', main: '#eab308', light: '#fde047', shadow: '#a16207', eye: '#713f12' },
+            9: { name: 'ojama',  main: '#94a3b8', light: '#e2e8f0', shadow: '#475569', eye: '#1e293b' } // おじゃまぷよ
         };
 
         const ROTATIONS = [
@@ -294,6 +313,13 @@
         let isPaused = false;
         let isSoftDropping = false;
 
+        // 新機能用変数
+        let feverGauge = 0;
+        const FEVER_MAX = 7;
+        let isFeverMode = false;
+        let feverTimer = null;
+        let puyoDropCount = 0; // おじゃまぷよ発生用カウント
+
         const STORAGE_KEY = 'puyo_high_scores_v3';
         let audioCtx = null;
 
@@ -305,7 +331,8 @@
                 audioCtx.resume();
             }
         }
-function playSound(type) {
+
+        function playSound(type, count = 1) {
             if (!audioCtx) return;
             try {
                 const osc = audioCtx.createOscillator();
@@ -344,13 +371,23 @@ function playSound(type) {
                     osc.start(now);
                     osc.stop(now + 0.12);
                 } else if (type === 'chain') {
+                    // 連鎖数に応じてピッチを上げるボイス風効果音
                     osc.type = 'sine';
-                    osc.frequency.setValueAtTime(500 + Math.random() * 200, now);
-                    osc.frequency.exponentialRampToValueAtTime(950 + Math.random() * 300, now + 0.22);
-                    gain.gain.setValueAtTime(0.25, now);
-                    gain.gain.linearRampToValueAtTime(0.01, now + 0.22);
+                    const baseFreq = 400 + (count * 150);
+                    osc.frequency.setValueAtTime(baseFreq, now);
+                    osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.8, now + 0.25);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
                     osc.start(now);
-                    osc.stop(now + 0.22);
+                    osc.stop(now + 0.25);
+                } else if (type === 'fever') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(1200, now + 0.5);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.5);
+                    osc.start(now);
+                    osc.stop(now + 0.5);
                 }
             } catch (e) {}
         }
@@ -375,9 +412,15 @@ function playSound(type) {
             isGameOver = false;
             isProcessing = false;
             isPaused = false;
+            
+            feverGauge = 0;
+            isFeverMode = false;
+            puyoDropCount = 0;
+            if (feverTimer) clearTimeout(feverTimer);
 
             document.getElementById('name-input-container').classList.add('hidden');
             document.getElementById('btn-pause').innerHTML = '<i class="fa-solid fa-pause text-xs"></i>';
+            document.getElementById('fever-badge').classList.add('hidden');
 
             updateUI();
 
@@ -478,8 +521,7 @@ function playSound(type) {
                 </div>
             `).join('');
         }
-
-        function createRandomPiece() {
+function createRandomPiece() {
             const colors = [1, 2, 3, 4];
             return {
                 x: 2,
@@ -535,7 +577,7 @@ function playSound(type) {
             if (isProcessing || isGameOver || isPaused) return false;
             if (!checkCollision(currentPiece.x, currentPiece.y + 1, currentPiece.rot)) {
                 currentPiece.y++;
-                score += 1;
+                score += isFeverMode ? 2 : 1;
                 checkLevelUp();
                 updateUI();
                 return true;
@@ -552,7 +594,7 @@ function playSound(type) {
                 currentPiece.y++;
                 dropCount++;
             }
-            score += dropCount * 2;
+            score += dropCount * (isFeverMode ? 4 : 2);
             checkLevelUp();
             updateUI();
             lockPiece();
@@ -594,8 +636,38 @@ function playSound(type) {
                 el.classList.add('opacity-0');
             }, 1200);
         }
-async function lockPiece() {
+
+        function triggerFever() {
+            isFeverMode = true;
+            playSound('fever');
+            document.getElementById('fever-badge').classList.remove('hidden');
+            const pop = document.getElementById('fever-pop');
+            pop.classList.remove('opacity-0');
+            setTimeout(() => pop.classList.add('opacity-0'), 1500);
+
+            if (feverTimer) clearTimeout(feverTimer);
+            feverTimer = setTimeout(() => {
+                isFeverMode = false;
+                feverGauge = 0;
+                document.getElementById('fever-badge').classList.add('hidden');
+                updateUI();
+            }, 10000); // 10秒間のフィーバータイム
+        }
+
+        function dropOjamaPuyo() {
+            if (isFeverMode) return;
+            const ojamaCount = Math.floor(Math.random() * 2) + 1;
+            for (let i = 0; i < ojamaCount; i++) {
+                const col = Math.floor(Math.random() * COLS);
+                if (grid[HIDDEN_ROWS][col] === 0) {
+                    grid[HIDDEN_ROWS][col] = 9; // 9 = おじゃまぷよ
+                }
+            }
+        }
+
+        async function lockPiece() {
             isProcessing = true;
+            puyoDropCount++;
 
             const x1 = currentPiece.x;
             const y1 = currentPiece.y;
@@ -608,6 +680,11 @@ async function lockPiece() {
             if (y2 >= 0 && y2 < TOTAL_ROWS) grid[y2][x2] = currentPiece.c2;
 
             playSound('drop');
+
+            // 5手ごとにおじゃまぷよが落下
+            if (puyoDropCount % 5 === 0) {
+                dropOjamaPuyo();
+            }
 
             let chainCount = 0;
             
@@ -624,24 +701,50 @@ async function lockPiece() {
                 chainCount++;
                 if (chainCount > maxChain) maxChain = chainCount;
 
+                // フィーバーゲージを溜める
+                if (!isFeverMode) {
+                    feverGauge = Math.min(FEVER_MAX, feverGauge + 1);
+                    if (feverGauge >= FEVER_MAX) {
+                        triggerFever();
+                    }
+                }
+
                 let totalPuyosCleared = 0;
                 groupsToClear.forEach(g => totalPuyosCleared += g.length);
                 
-                const chainBonus = Math.pow(2, chainCount - 1) * 20;
-                score += totalPuyosCleared * 10 + chainBonus;
+                const multiplier = isFeverMode ? 2 : 1;
+                const chainBonus = Math.pow(2, chainCount - 1) * 20 * multiplier;
+                score += (totalPuyosCleared * 10 + chainBonus);
                 checkLevelUp();
                 updateUI();
 
                 showChainPopup(chainCount);
-                if (chainCount === 1) playSound('pop');
-                else playSound('chain');
+                playSound('chain', chainCount);
 
                 await animateClear(groupsToClear);
 
+                // 消去処理＋隣接するおじゃまぷよを巻き込んで消す
+                const ojamaToClear = new Set();
                 groupsToClear.forEach(group => {
                     group.forEach(({ r, c }) => {
                         grid[r][c] = 0;
+                        
+                        const neighbors = [
+                            { r: r - 1, c: c }, { r: r + 1, c: c },
+                            { r: r, c: c - 1 }, { r: r, c: c + 1 }
+                        ];
+                        neighbors.forEach(n => {
+                            if (n.r >= 0 && n.r < TOTAL_ROWS && n.c >= 0 && n.c < COLS) {
+                                if (grid[n.r][n.c] === 9) {
+                                    ojamaToClear.add(`${n.r},${n.c}`);
+                                }
+                            }
+                        });
                     });
+                });
+ojamaToClear.forEach(pos => {
+                    const [r, c] = pos.split(',').map(Number);
+                    grid[r][c] = 0;
                 });
 
                 draw();
@@ -681,7 +784,7 @@ async function lockPiece() {
             for (let r = 0; r < TOTAL_ROWS; r++) {
                 for (let c = 0; c < COLS; c++) {
                     const color = grid[r][c];
-                    if (color !== 0 && !visited[r][c]) {
+                    if (color !== 0 && color !== 9 && !visited[r][c]) {
                         const group = [];
                         const queue = [{ r, c }];
                         visited[r][c] = true;
@@ -741,7 +844,7 @@ async function lockPiece() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             // グリッド背景線
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.strokeStyle = isFeverMode ? 'rgba(244, 63, 94, 0.2)' : 'rgba(255, 255, 255, 0.05)';
             ctx.lineWidth = 1;
             for (let r = 0; r <= ROWS; r++) {
                 ctx.beginPath();
@@ -825,22 +928,40 @@ async function lockPiece() {
             targetCtx.arc(centerX - radius * 0.35, centerY - radius * 0.35, radius * 0.25, 0, Math.PI * 2);
             targetCtx.fill();
 
-            // 目
-            const eyeOffset = radius * 0.28;
-            const eyeRadius = radius * 0.18;
-            const pupilRadius = eyeRadius * 0.5;
+            // 目（おじゃまぷよは「×」目）
+            if (colorId === 9) {
+                targetCtx.strokeStyle = '#ffffff';
+                targetCtx.lineWidth = 2;
+                const eyeOffset = radius * 0.25;
+                
+                targetCtx.beginPath();
+                targetCtx.moveTo(centerX - eyeOffset - 3, centerY - 3);
+                targetCtx.lineTo(centerX - eyeOffset + 3, centerY + 3);
+                targetCtx.moveTo(centerX - eyeOffset + 3, centerY - 3);
+                targetCtx.lineTo(centerX - eyeOffset - 3, centerY + 3);
+                
+                targetCtx.moveTo(centerX + eyeOffset - 3, centerY - 3);
+                targetCtx.lineTo(centerX + eyeOffset + 3, centerY + 3);
+                targetCtx.moveTo(centerX + eyeOffset + 3, centerY - 3);
+                targetCtx.lineTo(centerX + eyeOffset - 3, centerY + 3);
+                targetCtx.stroke();
+            } else {
+                const eyeOffset = radius * 0.28;
+                const eyeRadius = radius * 0.18;
+                const pupilRadius = eyeRadius * 0.5;
 
-            targetCtx.fillStyle = '#ffffff';
-            targetCtx.beginPath();
-            targetCtx.arc(centerX - eyeOffset, centerY - radius * 0.05, eyeRadius, 0, Math.PI * 2);
-            targetCtx.arc(centerX + eyeOffset, centerY - radius * 0.05, eyeRadius, 0, Math.PI * 2);
-            targetCtx.fill();
+                targetCtx.fillStyle = '#ffffff';
+                targetCtx.beginPath();
+                targetCtx.arc(centerX - eyeOffset, centerY - radius * 0.05, eyeRadius, 0, Math.PI * 2);
+                targetCtx.arc(centerX + eyeOffset, centerY - radius * 0.05, eyeRadius, 0, Math.PI * 2);
+                targetCtx.fill();
 
-            targetCtx.fillStyle = conf.eye;
-            targetCtx.beginPath();
-            targetCtx.arc(centerX - eyeOffset + 1, centerY - radius * 0.05, pupilRadius, 0, Math.PI * 2);
-            targetCtx.arc(centerX + eyeOffset - 1, centerY - radius * 0.05, pupilRadius, 0, Math.PI * 2);
-            targetCtx.fill();
+                targetCtx.fillStyle = conf.eye;
+                targetCtx.beginPath();
+                targetCtx.arc(centerX - eyeOffset + 1, centerY - radius * 0.05, pupilRadius, 0, Math.PI * 2);
+                targetCtx.arc(centerX + eyeOffset - 1, centerY - radius * 0.05, pupilRadius, 0, Math.PI * 2);
+                targetCtx.fill();
+            }
 
             targetCtx.restore();
         }
@@ -851,7 +972,8 @@ function gameLoop(time = 0) {
             lastTime = time;
 
             if (!isProcessing) {
-                dropInterval = isSoftDropping ? 40 : baseDropInterval;
+                const currentBaseInterval = isFeverMode ? 350 : baseDropInterval;
+                dropInterval = isSoftDropping ? 40 : currentBaseInterval;
                 dropCounter += deltaTime;
                 if (dropCounter > dropInterval) {
                     moveDown();
@@ -867,6 +989,8 @@ function gameLoop(time = 0) {
             document.getElementById('score').innerText = score.toLocaleString();
             document.getElementById('max-chain').innerText = `${maxChain} 連鎖`;
             document.getElementById('level-display').innerText = `LV. ${level}`;
+            const gaugePercent = (feverGauge / FEVER_MAX) * 100;
+            document.getElementById('fever-bar').style.width = `${gaugePercent}%`;
         }
 
         function showChainPopup(chains) {
