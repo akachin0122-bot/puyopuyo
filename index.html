@@ -322,7 +322,7 @@
         const STORAGE_KEY = 'puyo_high_scores_v3';
         let audioCtx = null;
 
-        function initAudio() {
+                function initAudio() {
             try {
                 if (!audioCtx) {
                     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -334,9 +334,10 @@
                     audioCtx.resume();
                 }
             } catch (e) {
-                console.log('Audio init skipped:', e);
+                console.log('Audio init error:', e);
             }
         }
+
 
         function playSound(type, count = 1) {
             if (!audioCtx) return;
@@ -434,14 +435,17 @@
             spawnPiece();
         }
 
-        function startGame() {
-            initAudio();
+                function startGame() {
+            try {
+                initAudio();
+            } catch (e) {}
             resetGame();
             document.getElementById('overlay').classList.add('opacity-0', 'pointer-events-none');
             lastTime = performance.now();
             if (animationId) cancelAnimationFrame(animationId);
             gameLoop();
         }
+
 
         function togglePause() {
             if (isGameOver) return;
