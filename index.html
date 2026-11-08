@@ -1,1 +1,985 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ぷよぷよ風パズルゲーム</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap');
+        
+        * {
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
 
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: 'Fredoka', 'M PLUS Rounded 1c', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311042 100%);
+            color: #f8fafc;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            height: 100vh;
+            height: 100dvh;
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+        }
+
+        .btn-touch {
+            transition: transform 0.05s ease, filter 0.05s ease;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.4);
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .btn-touch:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 rgba(0,0,0,0.4);
+            filter: brightness(1.25);
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { filter: drop-shadow(0 0 15px rgba(236, 72, 153, 0.9)); transform: translate(-50%, -50%) scale(1); }
+            50% { filter: drop-shadow(0 0 25px rgba(250, 204, 21, 1)); transform: translate(-50%, -50%) scale(1.15); }
+        }
+
+        .combo-text {
+            animation: pulse-glow 0.6s ease-in-out infinite;
+        }
+
+        @keyframes level-up-anim {
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+        }
+
+        .level-up-text {
+            animation: level-up-anim 1.2s forwards ease-out;
+        }
+
+        /* 画面縦幅に応じた柔軟なキャンバスサイズ自動微調整 */
+        .game-main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 0; /* Important for flex child scaling */
+            position: relative;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            height: 100%;
+            max-height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 1 / 2;
+        }
+
+        #game-canvas {
+            height: 100%;
+            width: 100%;
+            object-fit: contain;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+
+        <!-- ヘッダーエリア -->
+        <header class="w-full flex justify-between items-center glass-panel px-3 py-1.5 rounded-2xl border border-indigo-500/30 shrink-0">
+            <div>
+                <h1 class="text-base sm:text-lg font-black bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-indigo-300 leading-none">
+                    PUYO PUYO
+                </h1>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                    <span class="text-[10px] text-amber-400 font-extrabold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-500/40" id="level-display">LV. 1</span>
+                </div>
+            </div>
+            
+            <!-- スコア -->
+            <div class="text-center">
+                <div class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">SCORE</div>
+                <div id="score" class="text-base sm:text-lg font-extrabold text-amber-300 leading-none">0</div>
+            </div>
+
+            <!-- 最高連鎖 -->
+            <div class="text-center hidden sm:block">
+                <div class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">MAX CHAIN</div>
+                <div id="max-chain" class="text-sm font-bold text-pink-400 leading-none">0 連鎖</div>
+            </div>
+
+            <!-- 機能ボタン群 -->
+            <div class="flex items-center gap-1">
+                <button id="btn-fullscreen" title="全画面切り替え" class="btn-touch bg-indigo-600/80 hover:bg-indigo-600 text-white w-8 h-8 rounded-xl border border-indigo-400/40 flex items-center justify-center">
+                    <i class="fa-solid fa-expand text-xs"></i>
+                </button>
+                <button id="btn-ranking-open" title="ランキング" class="btn-touch bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 w-8 h-8 rounded-xl border border-amber-500/40 flex items-center justify-center">
+                    <i class="fa-solid fa-trophy text-xs"></i>
+                </button>
+                <button id="btn-pause" title="一時停止" class="btn-touch bg-slate-800 hover:bg-slate-700 text-slate-200 w-8 h-8 rounded-xl border border-slate-600 flex items-center justify-center">
+                    <i class="fa-solid fa-pause text-xs"></i>
+                </button>
+            </div>
+
+            <!-- NEXTぷよ表示 -->
+            <div class="flex flex-col items-center bg-slate-900/90 p-1 rounded-xl border border-slate-700">
+                <span class="text-[8px] text-slate-400 font-bold leading-none mb-0.5">NEXT</span>
+                <canvas id="next-canvas" width="28" height="56" class="block"></canvas>
+            </div>
+        </header>
+
+        <!-- ゲームフィールド -->
+        <main class="game-main my-1">
+            <div class="canvas-wrapper glass-panel p-1 rounded-2xl border-2 border-indigo-500/30">
+                <canvas id="game-canvas" width="288" height="576" class="rounded-xl bg-slate-950/90 shadow-inner block"></canvas>
+
+                <!-- スタート / ゲームオーバー / ポーズ オーバーレイ -->
+                <div id="overlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center p-4 text-center z-20 transition-all duration-300">
+                    <h2 id="overlay-title" class="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-300 to-yellow-300 mb-2">
+                        PUYO PUYO
+                    </h2>
+                    <p id="overlay-msg" class="text-xs text-slate-300 mb-4 max-w-[200px] leading-relaxed">
+                        同じ色のぷよを4つ以上繋げて消そう！大連鎖を目指せ！
+                    </p>
+
+                    <!-- 名前入力エリア（ハイスコア時） -->
+                    <div id="name-input-container" class="hidden w-full max-w-[200px] mb-3">
+                        <label class="block text-[10px] text-amber-300 font-bold mb-1">プレイヤー名を入力</label>
+                        <input type="text" id="player-name-input" maxlength="10" placeholder="なまえ" class="w-full text-center bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl border border-amber-500/50 focus:outline-none focus:border-amber-400 text-xs">
+                    </div>
+
+                    <div class="flex flex-col gap-2 w-full max-w-[200px]">
+                        <button id="start-btn" class="btn-touch bg-gradient-to-r from-pink-500 via-purple-600 to-indigo-600 text-white font-black py-3 rounded-full text-base sm:text-lg shadow-lg border-2 border-pink-300/50 w-full active:scale-95">
+                            START GAME
+                        </button>
+                        <button id="btn-show-ranking" class="btn-touch bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold py-2 rounded-full text-xs border border-amber-500/30 w-full flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-trophy"></i> RANKING
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ランキング モーダル -->
+                <div id="ranking-modal" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md rounded-2xl flex flex-col items-center justify-between p-4 z-40 hidden">
+                    <div class="w-full">
+                        <h3 class="text-lg font-black text-amber-300 flex items-center justify-center gap-2 mb-3">
+                            <i class="fa-solid fa-trophy"></i> TOP SCORES
+                        </h3>
+                        <div id="ranking-list" class="flex flex-col gap-1.5 w-full text-xs">
+                            <!-- ランキングアイテム -->
+                        </div>
+                    </div>
+                    <button id="btn-close-ranking" class="btn-touch bg-slate-800 text-white font-bold px-6 py-2 rounded-full text-xs border border-slate-600 w-full max-w-[140px] mt-2">
+                        CLOSE
+                    </button>
+                </div>
+
+                <!-- 連鎖表示ポップアップ -->
+                <div id="chain-pop" class="absolute top-1/2 left-1/2 pointer-events-none opacity-0 transition-all duration-300 z-30">
+                    <div id="chain-text" class="combo-text text-3xl sm:text-4xl font-black text-amber-300 drop-shadow-[0_4px_8px_rgba(0,0,0,0.9)] whitespace-nowrap">
+                        1 連鎖!
+                    </div>
+                </div>
+
+                <!-- レベルアップポップアップ -->
+                <div id="level-pop" class="absolute top-1/2 left-1/2 pointer-events-none opacity-0 z-30">
+                    <div id="level-text" class="level-up-text text-2xl sm:text-3xl font-black text-cyan-300 drop-shadow-[0_4px_10px_rgba(0,0,0,0.9)] whitespace-nowrap">
+                        LEVEL UP!
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 常時固定 コントローラー -->
+        <footer class="w-full grid grid-cols-5 gap-1.5 p-2 glass-panel rounded-2xl border border-slate-700/50 shrink-0">
+            <!-- 左移動 -->
+            <button id="btn-left" class="btn-touch bg-indigo-600 active:bg-indigo-500 text-white text-xl sm:text-2xl py-2.5 sm:py-3 rounded-xl flex items-center justify-center">
+                <i class="fa-solid fa-arrow-left"></i>
+            </button>
+
+            <!-- 回転 -->
+            <button id="btn-rot-r" class="btn-touch bg-pink-600 active:bg-pink-500 text-white text-lg sm:text-xl py-2.5 sm:py-3 rounded-xl flex items-center justify-center flex-col">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span class="text-[9px] font-bold mt-0.5">回転</span>
+            </button>
+   <!-- 高速落下（連続落下） -->
+            <button id="btn-down" class="btn-touch bg-amber-500 active:bg-amber-400 text-slate-950 text-lg sm:text-xl py-2.5 sm:py-3 rounded-xl flex items-center justify-center flex-col font-black">
+                <i class="fa-solid fa-arrow-down"></i>
+                <span class="text-[9px] font-black mt-0.5">高速落下</span>
+            </button>
+
+            <!-- ハードドロップ（即落下） -->
+            <button id="btn-hard-drop" class="btn-touch bg-red-600 active:bg-red-500 text-white text-lg sm:text-xl py-2.5 sm:py-3 rounded-xl flex items-center justify-center flex-col font-black">
+                <i class="fa-solid fa-angles-down"></i>
+                <span class="text-[9px] font-black mt-0.5">即落下</span>
+            </button>
+
+            <!-- 右移動 -->
+            <button id="btn-right" class="btn-touch bg-indigo-600 active:bg-indigo-500 text-white text-xl sm:text-2xl py-2.5 sm:py-3 rounded-xl flex items-center justify-center">
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </footer>
+    </div>
+
+    <script>
+        const COLS = 6;
+        const ROWS = 12;
+        const HIDDEN_ROWS = 1;
+        const TOTAL_ROWS = ROWS + HIDDEN_ROWS;
+        const BLOCK_SIZE = 48; // Canvas内部定義: 288 x 576
+
+        const COLORS = {
+            1: { name: 'red',    main: '#ef4444', light: '#fca5a5', shadow: '#991b1b', eye: '#7f1d1d' },
+            2: { name: 'blue',   main: '#3b82f6', light: '#93c5fd', shadow: '#1e40af', eye: '#1e3a8a' },
+            3: { name: 'green',  main: '#22c55e', light: '#86efac', shadow: '#15803d', eye: '#14532d' },
+            4: { name: 'yellow', main: '#eab308', light: '#fde047', shadow: '#a16207', eye: '#713f12' }
+        };
+
+        const ROTATIONS = [
+            [0, -1], // 上
+            [1, 0],  // 右
+            [0, 1],  // 下
+            [-1, 0]  // 左
+        ];
+
+        let canvas, ctx;
+        let nextCanvas, nextCtx;
+        let grid = [];
+        let currentPiece = null;
+        let nextPiece = null;
+        let score = 0;
+        let level = 1;
+        let maxChain = 0;
+        let isGameOver = true;
+        let isProcessing = false;
+        let dropCounter = 0;
+        let baseDropInterval = 800;
+        let dropInterval = 800;
+        let lastTime = 0;
+        let animationId = null;
+        let isPaused = false;
+        let isSoftDropping = false;
+
+        const STORAGE_KEY = 'puyo_high_scores_v3';
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playSound(type) {
+            if (!audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+
+                if (type === 'move') {
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(150, now + 0.04);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.04);
+                    osc.start(now);
+                    osc.stop(now + 0.04);
+                } else if (type === 'rotate') {
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(650, now + 0.06);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.06);
+                    osc.start(now);
+                    osc.stop(now + 0.06);
+                } else if (type === 'drop') {
+                    osc.frequency.setValueAtTime(180, now);
+                    osc.frequency.exponentialRampToValueAtTime(70, now + 0.08);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'pop') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(450, now);
+                    osc.frequency.exponentialRampToValueAtTime(1100, now + 0.12);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
+                    osc.start(now);
+                    osc.stop(now + 0.12);
+                } else if (type === 'chain') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(500 + Math.random() * 200, now);
+                    osc.frequency.exponentialRampToValueAtTime(950 + Math.random() * 300, now + 0.22);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.22);
+                    osc.start(now);
+                    osc.stop(now + 0.22);
+                }
+            } catch (e) {}
+        }
+
+        window.onload = () => {
+            canvas = document.getElementById('game-canvas');
+            ctx = canvas.getContext('2d');
+            nextCanvas = document.getElementById('next-canvas');
+            nextCtx = nextCanvas.getContext('2d');
+
+            setupInputs();
+            draw();
+        };
+
+        function resetGame() {
+            grid = Array.from({ length: TOTAL_ROWS }, () => Array(COLS).fill(0));
+            score = 0;
+            level = 1;
+            maxChain = 0;
+            baseDropInterval = 800;
+            dropInterval = 800;
+            isGameOver = false;
+            isProcessing = false;
+            isPaused = false;
+
+            document.getElementById('name-input-container').classList.add('hidden');
+            document.getElementById('btn-pause').innerHTML = '<i class="fa-solid fa-pause text-xs"></i>';
+
+            updateUI();
+
+            nextPiece = createRandomPiece();
+            spawnPiece();
+        }
+
+        function startGame() {
+            initAudio();
+            resetGame();
+            document.getElementById('overlay').classList.add('opacity-0', 'pointer-events-none');
+            lastTime = performance.now();
+            if (animationId) cancelAnimationFrame(animationId);
+            gameLoop();
+        }
+
+        function togglePause() {
+            if (isGameOver) return;
+            isPaused = !isPaused;
+            const overlay = document.getElementById('overlay');
+            const btnPause = document.getElementById('btn-pause');
+
+            if (isPaused) {
+                btnPause.innerHTML = '<i class="fa-solid fa-play text-xs"></i>';
+                document.getElementById('overlay-title').innerText = "PAUSED";
+                document.getElementById('overlay-msg').innerText = `CURRENT SCORE: ${score}`;
+                document.getElementById('start-btn').innerText = "RESUME";
+                document.getElementById('name-input-container').classList.add('hidden');
+                overlay.classList.remove('opacity-0', 'pointer-events-none');
+            } else {
+                btnPause.innerHTML = '<i class="fa-solid fa-pause text-xs"></i>';
+                overlay.classList.add('opacity-0', 'pointer-events-none');
+                lastTime = performance.now();
+                gameLoop();
+            }
+        }
+
+        function gameOver() {
+            isGameOver = true;
+            document.getElementById('btn-pause').innerHTML = '<i class="fa-solid fa-pause text-xs"></i>';
+            document.getElementById('overlay-title').innerText = "GAME OVER";
+            document.getElementById('overlay-msg').innerText = `FINAL SCORE: ${score}`;
+            document.getElementById('start-btn').innerText = "SAVE & RESTART";
+            
+            const inputContainer = document.getElementById('name-input-container');
+            inputContainer.classList.remove('hidden');
+            const savedName = localStorage.getItem('puyo_player_name') || '';
+            document.getElementById('player-name-input').value = savedName;
+
+            document.getElementById('overlay').classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function saveScore() {
+            const inputEl = document.getElementById('player-name-input');
+            const name = (inputEl.value.trim() || 'NO NAME').substring(0, 10);
+            localStorage.setItem('puyo_player_name', name);
+
+            const scores = getHighScores();
+            scores.push({ name, score, level, maxChain, date: new Date().toLocaleDateString() });
+            scores.sort((a, b) => b.score - a.score);
+            const topScores = scores.slice(0, 5);
+
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(topScores));
+            } catch (e) {}
+        }
+
+        function getHighScores() {
+            try {
+                const data = localStorage.getItem(STORAGE_KEY);
+                return data ? JSON.parse(data) : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function renderRanking() {
+            const listEl = document.getElementById('ranking-list');
+            const scores = getHighScores();
+            
+            if (scores.length === 0) {
+                listEl.innerHTML = '<div class="text-slate-400 py-4 text-center">まだ記録がありません</div>';
+                return;
+            }
+
+            listEl.innerHTML = scores.map((s, idx) => `
+                <div class="flex items-center justify-between bg-slate-900/90 px-2.5 py-1.5 rounded-xl border border-slate-700/60">
+                    <div class="flex items-center gap-2">
+                        <span class="font-black ${idx === 0 ? 'text-yellow-400' : idx === 1 ? 'text-slate-300' : idx === 2 ? 'text-amber-600' : 'text-slate-500'} w-4 text-center">
+                            ${idx + 1}
+                        </span>
+                        <span class="font-bold text-slate-200 truncate max-w-[80px]">${s.name}</span>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-black text-amber-300">${s.score.toLocaleString()}</div>
+                        <div class="text-[9px] text-slate-400">LV.${s.level || 1} / ${s.maxChain}連鎖</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function createRandomPiece() {
+            const colors = [1, 2, 3, 4];
+            return {
+                x: 2,
+                y: 0,
+                rot: 0,
+                c1: colors[Math.floor(Math.random() * colors.length)],
+                c2: colors[Math.floor(Math.random() * colors.length)]
+            };
+        }
+function spawnPiece() {
+            currentPiece = nextPiece;
+            nextPiece = createRandomPiece();
+            drawNextPiece();
+
+            if (checkCollision(currentPiece.x, currentPiece.y, currentPiece.rot)) {
+                gameOver();
+            }
+        }
+
+        function checkCollision(x, y, rot) {
+            if (x < 0 || x >= COLS || y >= TOTAL_ROWS) return true;
+            if (y >= 0 && grid[y][x] !== 0) return true;
+
+            const dx = ROTATIONS[rot][0];
+            const dy = ROTATIONS[rot][1];
+            const nx = x + dx;
+            const ny = y + dy;
+
+            if (nx < 0 || nx >= COLS || ny >= TOTAL_ROWS) return true;
+            if (ny >= 0 && grid[ny][nx] !== 0) return true;
+
+            return false;
+        }
+
+        function moveLeft() {
+            if (isProcessing || isGameOver || isPaused) return;
+            if (!checkCollision(currentPiece.x - 1, currentPiece.y, currentPiece.rot)) {
+                currentPiece.x--;
+                playSound('move');
+            }
+        }
+
+        function moveRight() {
+            if (isProcessing || isGameOver || isPaused) return;
+            if (!checkCollision(currentPiece.x + 1, currentPiece.y, currentPiece.rot)) {
+                currentPiece.x++;
+                playSound('move');
+            }
+        }
+
+        function moveDown() {
+            if (isProcessing || isGameOver || isPaused) return false;
+            if (!checkCollision(currentPiece.x, currentPiece.y + 1, currentPiece.rot)) {
+                currentPiece.y++;
+                score += 1;
+                checkLevelUp();
+                updateUI();
+                return true;
+            } else {
+                lockPiece();
+                return false;
+            }
+        }
+
+        function hardDrop() {
+            if (isProcessing || isGameOver || isPaused) return;
+            let dropCount = 0;
+            while (!checkCollision(currentPiece.x, currentPiece.y + 1, currentPiece.rot)) {
+                currentPiece.y++;
+                dropCount++;
+            }
+            score += dropCount * 2;
+            checkLevelUp();
+            updateUI();
+            lockPiece();
+        }
+
+        function rotate(dir = 1) {
+            if (isProcessing || isGameOver || isPaused) return;
+            const nextRot = (currentPiece.rot + dir + 4) % 4;
+
+            if (!checkCollision(currentPiece.x, currentPiece.y, nextRot)) {
+                currentPiece.rot = nextRot;
+                playSound('rotate');
+                return;
+            }
+
+            for (let offset of [-1, 1]) {
+                if (!checkCollision(currentPiece.x + offset, currentPiece.y, nextRot)) {
+                    currentPiece.x += offset;
+                    currentPiece.rot = nextRot;
+                    playSound('rotate');
+                    return;
+                }
+            }
+        }
+
+        function checkLevelUp() {
+            const newLevel = Math.floor(score / 1500) + 1;
+            if (newLevel > level) {
+                level = newLevel;
+                baseDropInterval = Math.max(120, 800 - (level - 1) * 75);
+                showLevelUpPopup();
+            }
+        }
+
+        function showLevelUpPopup() {
+            const el = document.getElementById('level-pop');
+            el.classList.remove('opacity-0');
+            setTimeout(() => {
+                el.classList.add('opacity-0');
+            }, 1200);
+        }
+
+        async function lockPiece() {
+            isProcessing = true;
+
+            const x1 = currentPiece.x;
+            const y1 = currentPiece.y;
+            const dx = ROTATIONS[currentPiece.rot][0];
+            const dy = ROTATIONS[currentPiece.rot][1];
+            const x2 = x1 + dx;
+            const y2 = y1 + dy;
+
+            if (y1 >= 0 && y1 < TOTAL_ROWS) grid[y1][x1] = currentPiece.c1;
+            if (y2 >= 0 && y2 < TOTAL_ROWS) grid[y2][x2] = currentPiece.c2;
+
+            playSound('drop');
+
+            let chainCount = 0;
+            
+            while (true) {
+                const fell = applyGravity();
+                if (fell) {
+                    draw();
+                    await sleep(140);
+                }
+
+                const groupsToClear = findMatches();
+                if (groupsToClear.length === 0) break;
+
+                chainCount++;
+                if (chainCount > maxChain) maxChain = chainCount;
+
+                let totalPuyosCleared = 0;
+                groupsToClear.forEach(g => totalPuyosCleared += g.length);
+                
+                const chainBonus = Math.pow(2, chainCount - 1) * 20;
+                score += totalPuyosCleared * 10 + chainBonus;
+                checkLevelUp();
+                updateUI();
+
+                showChainPopup(chainCount);
+                if (chainCount === 1) playSound('pop');
+                else playSound('chain');
+
+                await animateClear(groupsToClear);
+
+                groupsToClear.forEach(group => {
+                    group.forEach(({ r, c }) => {
+                        grid[r][c] = 0;
+                    });
+                });
+
+                draw();
+                await sleep(180);
+            }
+
+            if (grid[HIDDEN_ROWS][2] !== 0) {
+                gameOver();
+            } else {
+                isProcessing = false;
+                spawnPiece();
+            }
+        }
+
+        function applyGravity() {
+            let moved = false;
+            for (let c = 0; c < COLS; c++) {
+                for (let r = TOTAL_ROWS - 2; r >= 0; r--) {
+                    if (grid[r][c] !== 0 && grid[r + 1][c] === 0) {
+                        let targetR = r;
+                        while (targetR + 1 < TOTAL_ROWS && grid[targetR + 1][c] === 0) {
+                            targetR++;
+                        }
+                        grid[targetR][c] = grid[r][c];
+                        grid[r][c] = 0;
+                        moved = true;
+                    }
+                }
+            }
+            return moved;
+        }
+
+        function findMatches() {
+            const visited = Array.from({ length: TOTAL_ROWS }, () => Array(COLS).fill(false));
+            const matchedGroups = [];
+
+            for (let r = 0; r < TOTAL_ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const color = grid[r][c];
+                    if (color !== 0 && !visited[r][c]) {
+                        const group = [];
+                        const queue = [{ r, c }];
+                        visited[r][c] = true;
+
+                        while (queue.length > 0) {
+                            const { r: currR, c: currC } = queue.pop();
+                            group.push({ r: currR, c: currC });
+
+                            const neighbors = [
+                                { r: currR - 1, c: currC },
+                                { r: currR + 1, c: currC },
+                                { r: currR, c: currC - 1 },
+                                { r: currR, c: currC + 1 }
+                            ];
+
+                            neighbors.forEach(n => {
+                                if (
+                                    n.r >= 0 && n.r < TOTAL_ROWS &&
+                                    n.c >= 0 && n.c < COLS &&
+                                    !visited[n.r][n.c] &&
+                                    grid[n.r][n.c] === color
+                                ) {
+                                    visited[n.r][n.c] = true;
+                                    queue.push(n);
+                                }
+                            });
+                        }
+
+                        if (group.length >= 4) {
+                            matchedGroups.push(group);
+                        }
+                    }
+                }
+            }
+            return matchedGroups;
+        }
+
+        async function animateClear(groups) {
+            for (let i = 0; i < 4; i++) {
+                draw();
+                groups.forEach(group => {
+                    group.forEach(({ r, c }) => {
+                        if (r >= HIDDEN_ROWS) {
+                            const drawY = r - HIDDEN_ROWS;
+                            ctx.fillStyle = i % 2 === 0 ? 'rgba(255, 255, 255, 0.9)' : COLORS[grid[r][c]].main;
+                            ctx.beginPath();
+                            ctx.arc(c * BLOCK_SIZE + BLOCK_SIZE / 2, drawY * BLOCK_SIZE + BLOCK_SIZE / 2, BLOCK_SIZE * 0.45, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    });
+                });
+                await sleep(50);
+            }
+        }
+function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // グリッド背景線
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            for (let r = 0; r <= ROWS; r++) {
+                ctx.beginPath();
+                ctx.moveTo(0, r * BLOCK_SIZE);
+                ctx.lineTo(canvas.width, r * BLOCK_SIZE);
+                ctx.stroke();
+            }
+            for (let c = 0; c <= COLS; c++) {
+                ctx.beginPath();
+                ctx.moveTo(c * BLOCK_SIZE, 0);
+                ctx.lineTo(c * BLOCK_SIZE, canvas.height);
+                ctx.stroke();
+            }
+
+            // 設置済みぷよ描画
+            for (let r = HIDDEN_ROWS; r < TOTAL_ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const colorId = grid[r][c];
+                    if (colorId !== 0) {
+                        drawPuyo(ctx, c * BLOCK_SIZE, (r - HIDDEN_ROWS) * BLOCK_SIZE, colorId);
+                    }
+                }
+            }
+
+            // 操作中のぷよ
+            if (currentPiece && !isGameOver) {
+                const x1 = currentPiece.x;
+                const y1 = currentPiece.y;
+                const dx = ROTATIONS[currentPiece.rot][0];
+                const dy = ROTATIONS[currentPiece.rot][1];
+                const x2 = x1 + dx;
+                const y2 = y1 + dy;
+
+                if (y1 >= HIDDEN_ROWS) drawPuyo(ctx, x1 * BLOCK_SIZE, (y1 - HIDDEN_ROWS) * BLOCK_SIZE, currentPiece.c1);
+                if (y2 >= HIDDEN_ROWS) drawPuyo(ctx, x2 * BLOCK_SIZE, (y2 - HIDDEN_ROWS) * BLOCK_SIZE, currentPiece.c2);
+            }
+        }
+
+        function drawNextPiece() {
+            nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+            if (!nextPiece) return;
+
+            const size = 24;
+            const offsetX = (nextCanvas.width - size) / 2;
+            const offsetY = 2;
+
+            drawPuyoCustom(nextCtx, offsetX, offsetY, nextPiece.c2, size);
+            drawPuyoCustom(nextCtx, offsetX, offsetY + size, nextPiece.c1, size);
+        }
+
+        function drawPuyo(targetCtx, x, y, colorId) {
+            drawPuyoCustom(targetCtx, x, y, colorId, BLOCK_SIZE);
+        }
+
+        function drawPuyoCustom(targetCtx, x, y, colorId, size) {
+            const conf = COLORS[colorId];
+            if (!conf) return;
+
+            const radius = size * 0.44;
+            const centerX = x + size / 2;
+            const centerY = y + size / 2;
+
+            targetCtx.save();
+
+            const grad = targetCtx.createRadialGradient(
+                centerX - radius * 0.3, centerY - radius * 0.3, radius * 0.1,
+                centerX, centerY, radius
+            );
+            grad.addColorStop(0, conf.light);
+            grad.addColorStop(0.7, conf.main);
+            grad.addColorStop(1, conf.shadow);
+
+            targetCtx.fillStyle = grad;
+            targetCtx.beginPath();
+            targetCtx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            targetCtx.fill();
+
+            // ハイライト
+            targetCtx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            targetCtx.beginPath();
+            targetCtx.arc(centerX - radius * 0.35, centerY - radius * 0.35, radius * 0.25, 0, Math.PI * 2);
+            targetCtx.fill();
+
+            // 目
+            const eyeOffset = radius * 0.28;
+            const eyeRadius = radius * 0.18;
+            const pupilRadius = eyeRadius * 0.5;
+
+            targetCtx.fillStyle = '#ffffff';
+            targetCtx.beginPath();
+            targetCtx.arc(centerX - eyeOffset, centerY - radius * 0.05, eyeRadius, 0, Math.PI * 2);
+            targetCtx.arc(centerX + eyeOffset, centerY - radius * 0.05, eyeRadius, 0, Math.PI * 2);
+            targetCtx.fill();
+
+            targetCtx.fillStyle = conf.eye;
+            targetCtx.beginPath();
+            targetCtx.arc(centerX - eyeOffset + 1, centerY - radius * 0.05, pupilRadius, 0, Math.PI * 2);
+            targetCtx.arc(centerX + eyeOffset - 1, centerY - radius * 0.05, pupilRadius, 0, Math.PI * 2);
+            targetCtx.fill();
+
+            targetCtx.restore();
+        }
+
+        function gameLoop(time = 0) {
+            if (isGameOver || isPaused) return;
+
+            const deltaTime = time - lastTime;
+            lastTime = time;
+
+            if (!isProcessing) {
+                dropInterval = isSoftDropping ? 40 : baseDropInterval;
+                dropCounter += deltaTime;
+                if (dropCounter > dropInterval) {
+                    moveDown();
+                    dropCounter = 0;
+                }
+            }
+
+            draw();
+            animationId = requestAnimationFrame(gameLoop);
+        }
+
+        function updateUI() {
+            document.getElementById('score').innerText = score.toLocaleString();
+            document.getElementById('max-chain').innerText = `${maxChain} 連鎖`;
+            document.getElementById('level-display').innerText = `LV. ${level}`;
+        }
+
+        function showChainPopup(chains) {
+            const el = document.getElementById('chain-pop');
+            const textEl = document.getElementById('chain-text');
+            textEl.innerText = `${chains} 連鎖!`;
+            
+            el.classList.remove('opacity-0', 'scale-50');
+            el.classList.add('opacity-100', 'scale-110');
+
+            setTimeout(() => {
+                el.classList.remove('opacity-100', 'scale-110');
+                el.classList.add('opacity-0', 'scale-50');
+            }, 750);
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function toggleFullscreen() {
+            const doc = window.document;
+            const docEl = doc.documentElement;
+
+            const requestFullscreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+            const exitFullscreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+
+            if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+                if (requestFullscreen) {
+                    requestFullscreen.call(docEl).catch(() => {});
+                }
+            } else {
+                if (exitFullscreen) {
+                    exitFullscreen.call(doc).catch(() => {});
+                }
+            }
+        }
+
+        function setupInputs() {
+            // 全画面切り替えボタン
+            document.getElementById('btn-fullscreen').addEventListener('click', toggleFullscreen);
+
+            // キーボード操作
+            window.addEventListener('keydown', (e) => {
+                if (e.code === 'KeyP') {
+                    togglePause();
+                    return;
+                }
+                if (isGameOver || isPaused || isProcessing) return;
+
+                switch (e.code) {
+                    case 'ArrowLeft': case 'KeyA': moveLeft(); break;
+                    case 'ArrowRight': case 'KeyD': moveRight(); break;
+                    case 'ArrowDown': case 'KeyS': isSoftDropping = true; break;
+                    case 'Space': hardDrop(); break;
+                    case 'ArrowUp': case 'KeyX': case 'KeyK': rotate(1); break;
+                    case 'KeyZ': case 'KeyJ': rotate(-1); break;
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+                    isSoftDropping = false;
+                }
+            });
+
+            // スタート / リスタート
+            document.getElementById('start-btn').addEventListener('click', () => {
+                if (isPaused) {
+                    togglePause();
+                } else {
+                    if (isGameOver && score > 0) {
+                        saveScore();
+                    }
+                    startGame();
+                }
+            });
+
+            // ポーズ
+            document.getElementById('btn-pause').addEventListener('click', togglePause);
+
+            // ランキング表示
+            const showRankingHandler = () => {
+                renderRanking();
+                document.getElementById('ranking-modal').classList.remove('hidden');
+            };
+            document.getElementById('btn-show-ranking').addEventListener('click', showRankingHandler);
+            document.getElementById('btn-ranking-open').addEventListener('click', showRankingHandler);
+
+            // ランキング閉じる
+            document.getElementById('btn-close-ranking').addEventListener('click', () => {
+                document.getElementById('ranking-modal').classList.add('hidden');
+            });
+
+            // タッチボタンバインド
+            const bindBtnPress = (id, onPress, onRelease) => {
+                const btn = document.getElementById(id);
+                const start = (e) => {
+                    e.preventDefault();
+                    initAudio();
+                    onPress();
+                };
+                const end = (e) => {
+                    e.preventDefault();
+                    if (onRelease) onRelease();
+                };
+
+                btn.addEventListener('touchstart', start, { passive: false });
+                btn.addEventListener('touchend', end, { passive: false });
+                btn.addEventListener('mousedown', start);
+                btn.addEventListener('mouseup', end);
+                btn.addEventListener('mouseleave', end);
+            };
+
+            bindBtnPress('btn-left', moveLeft);
+            bindBtnPress('btn-right', moveRight);
+            bindBtnPress('btn-rot-r', () => rotate(1));
+            bindBtnPress('btn-down', () => { isSoftDropping = true; }, () => { isSoftDropping = false; });
+            bindBtnPress('btn-hard-drop', hardDrop);
+        }
+    </script>
+</body>
+</html>
