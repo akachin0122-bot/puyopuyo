@@ -241,7 +241,7 @@
             </div>
         </main>
 
-       <!-- 常時固定 コントローラー -->
+        <!-- 常時固定 コントローラー -->
         <footer class="w-full grid grid-cols-5 gap-1.5 p-2 glass-panel rounded-2xl border border-slate-700/50 shrink-0">
             <!-- 左移動 -->
             <button id="btn-left" class="btn-touch bg-indigo-600 active:bg-indigo-500 text-white text-xl sm:text-2xl py-2.5 sm:py-3 rounded-xl flex items-center justify-center">
@@ -272,8 +272,7 @@
             </button>
         </footer>
     </div>
-
-    <script>
+     <script>
         const COLS = 6;
         const ROWS = 12;
         const HIDDEN_ROWS = 1;
@@ -324,11 +323,18 @@
         let audioCtx = null;
 
         function initAudio() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
+            try {
+                if (!audioCtx) {
+                    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContextClass) {
+                        audioCtx = new AudioContextClass();
+                    }
+                }
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            } catch (e) {
+                console.log('Audio init skipped:', e);
             }
         }
 
@@ -521,7 +527,8 @@
                 </div>
             `).join('');
         }
-function createRandomPiece() {
+
+        function createRandomPiece() {
             const colors = [1, 2, 3, 4];
             return {
                 x: 2,
@@ -531,8 +538,7 @@ function createRandomPiece() {
                 c2: colors[Math.floor(Math.random() * colors.length)]
             };
         }
-
-        function spawnPiece() {
+function spawnPiece() {
             currentPiece = nextPiece;
             nextPiece = createRandomPiece();
             drawNextPiece();
@@ -742,7 +748,8 @@ function createRandomPiece() {
                         });
                     });
                 });
-ojamaToClear.forEach(pos => {
+
+                ojamaToClear.forEach(pos => {
                     const [r, c] = pos.split(',').map(Number);
                     grid[r][c] = 0;
                 });
@@ -776,8 +783,7 @@ ojamaToClear.forEach(pos => {
             }
             return moved;
         }
-
-        function findMatches() {
+function findMatches() {
             const visited = Array.from({ length: TOTAL_ROWS }, () => Array(COLS).fill(false));
             const matchedGroups = [];
 
@@ -965,7 +971,8 @@ ojamaToClear.forEach(pos => {
 
             targetCtx.restore();
         }
-function gameLoop(time = 0) {
+
+        function gameLoop(time = 0) {
             if (isGameOver || isPaused) return;
 
             const deltaTime = time - lastTime;
@@ -1028,8 +1035,7 @@ function gameLoop(time = 0) {
                 }
             }
         }
-
-        function setupInputs() {
+function setupInputs() {
             // 全画面切り替えボタン
             document.getElementById('btn-fullscreen').addEventListener('click', toggleFullscreen);
 
