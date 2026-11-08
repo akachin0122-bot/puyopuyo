@@ -210,7 +210,6 @@
                             <i class="fa-solid fa-trophy"></i> TOP SCORES
                         </h3>
                         <div id="ranking-list" class="flex flex-col gap-1.5 w-full text-xs">
-                            <!-- ランキングアイテム -->
                         </div>
                     </div>
                     <button id="btn-close-ranking" class="btn-touch bg-slate-800 text-white font-bold px-6 py-2 rounded-full text-xs border border-slate-600 w-full max-w-[140px] mt-2">
@@ -272,26 +271,26 @@
             </button>
         </footer>
     </div>
-     <script>
+ <script>
         const COLS = 6;
         const ROWS = 12;
         const HIDDEN_ROWS = 1;
         const TOTAL_ROWS = ROWS + HIDDEN_ROWS;
-        const BLOCK_SIZE = 48; // Canvas内部定義: 288 x 576
+        const BLOCK_SIZE = 48;
 
         const COLORS = {
             1: { name: 'red',    main: '#ef4444', light: '#fca5a5', shadow: '#991b1b', eye: '#7f1d1d' },
             2: { name: 'blue',   main: '#3b82f6', light: '#93c5fd', shadow: '#1e40af', eye: '#1e3a8a' },
             3: { name: 'green',  main: '#22c55e', light: '#86efac', shadow: '#15803d', eye: '#14532d' },
             4: { name: 'yellow', main: '#eab308', light: '#fde047', shadow: '#a16207', eye: '#713f12' },
-            9: { name: 'ojama',  main: '#94a3b8', light: '#e2e8f0', shadow: '#475569', eye: '#1e293b' } // おじゃまぷよ
+            9: { name: 'ojama',  main: '#94a3b8', light: '#e2e8f0', shadow: '#475569', eye: '#1e293b' }
         };
 
         const ROTATIONS = [
-            [0, -1], // 上
-            [1, 0],  // 右
-            [0, 1],  // 下
-            [-1, 0]  // 左
+            [0, -1],
+            [1, 0],
+            [0, 1],
+            [-1, 0]
         ];
 
         let canvas, ctx;
@@ -312,17 +311,16 @@
         let isPaused = false;
         let isSoftDropping = false;
 
-        // 新機能用変数
         let feverGauge = 0;
         const FEVER_MAX = 7;
         let isFeverMode = false;
         let feverTimer = null;
-        let puyoDropCount = 0; // おじゃまぷよ発生用カウント
+        let puyoDropCount = 0;
 
         const STORAGE_KEY = 'puyo_high_scores_v3';
         let audioCtx = null;
 
-                function initAudio() {
+        function initAudio() {
             try {
                 if (!audioCtx) {
                     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
@@ -337,7 +335,6 @@
                 console.log('Audio init error:', e);
             }
         }
-
 
         function playSound(type, count = 1) {
             if (!audioCtx) return;
@@ -378,7 +375,6 @@
                     osc.start(now);
                     osc.stop(now + 0.12);
                 } else if (type === 'chain') {
-                    // 連鎖数に応じてピッチを上げるボイス風効果音
                     osc.type = 'sine';
                     const baseFreq = 400 + (count * 150);
                     osc.frequency.setValueAtTime(baseFreq, now);
@@ -435,7 +431,7 @@
             spawnPiece();
         }
 
-                function startGame() {
+        function startGame() {
             try {
                 initAudio();
             } catch (e) {}
@@ -445,7 +441,6 @@
             if (animationId) cancelAnimationFrame(animationId);
             gameLoop();
         }
-
 
         function togglePause() {
             if (isGameOver) return;
@@ -542,7 +537,8 @@
                 c2: colors[Math.floor(Math.random() * colors.length)]
             };
         }
-function spawnPiece() {
+
+        function spawnPiece() {
             currentPiece = nextPiece;
             nextPiece = createRandomPiece();
             drawNextPiece();
@@ -596,8 +592,7 @@ function spawnPiece() {
                 return false;
             }
         }
-
-        function hardDrop() {
+function hardDrop() {
             if (isProcessing || isGameOver || isPaused) return;
             let dropCount = 0;
             while (!checkCollision(currentPiece.x, currentPiece.y + 1, currentPiece.rot)) {
@@ -661,7 +656,7 @@ function spawnPiece() {
                 feverGauge = 0;
                 document.getElementById('fever-badge').classList.add('hidden');
                 updateUI();
-            }, 10000); // 10秒間のフィーバータイム
+            }, 10000);
         }
 
         function dropOjamaPuyo() {
@@ -670,7 +665,7 @@ function spawnPiece() {
             for (let i = 0; i < ojamaCount; i++) {
                 const col = Math.floor(Math.random() * COLS);
                 if (grid[HIDDEN_ROWS][col] === 0) {
-                    grid[HIDDEN_ROWS][col] = 9; // 9 = おじゃまぷよ
+                    grid[HIDDEN_ROWS][col] = 9;
                 }
             }
         }
@@ -691,7 +686,6 @@ function spawnPiece() {
 
             playSound('drop');
 
-            // 5手ごとにおじゃまぷよが落下
             if (puyoDropCount % 5 === 0) {
                 dropOjamaPuyo();
             }
@@ -711,7 +705,6 @@ function spawnPiece() {
                 chainCount++;
                 if (chainCount > maxChain) maxChain = chainCount;
 
-                // フィーバーゲージを溜める
                 if (!isFeverMode) {
                     feverGauge = Math.min(FEVER_MAX, feverGauge + 1);
                     if (feverGauge >= FEVER_MAX) {
@@ -733,7 +726,6 @@ function spawnPiece() {
 
                 await animateClear(groupsToClear);
 
-                // 消去処理＋隣接するおじゃまぷよを巻き込んで消す
                 const ojamaToClear = new Set();
                 groupsToClear.forEach(group => {
                     group.forEach(({ r, c }) => {
@@ -787,7 +779,8 @@ function spawnPiece() {
             }
             return moved;
         }
-function findMatches() {
+
+        function findMatches() {
             const visited = Array.from({ length: TOTAL_ROWS }, () => Array(COLS).fill(false));
             const matchedGroups = [];
 
@@ -849,11 +842,9 @@ function findMatches() {
                 await sleep(50);
             }
         }
-
-        function draw() {
+function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // グリッド背景線
             ctx.strokeStyle = isFeverMode ? 'rgba(244, 63, 94, 0.2)' : 'rgba(255, 255, 255, 0.05)';
             ctx.lineWidth = 1;
             for (let r = 0; r <= ROWS; r++) {
@@ -869,7 +860,6 @@ function findMatches() {
                 ctx.stroke();
             }
 
-            // 設置済みぷよ描画
             for (let r = HIDDEN_ROWS; r < TOTAL_ROWS; r++) {
                 for (let c = 0; c < COLS; c++) {
                     const colorId = grid[r][c];
@@ -879,7 +869,6 @@ function findMatches() {
                 }
             }
 
-            // 操作中のぷよ
             if (currentPiece && !isGameOver) {
                 const x1 = currentPiece.x;
                 const y1 = currentPiece.y;
@@ -932,13 +921,11 @@ function findMatches() {
             targetCtx.arc(centerX, centerY, radius, 0, Math.PI * 2);
             targetCtx.fill();
 
-            // ハイライト
             targetCtx.fillStyle = 'rgba(255, 255, 255, 0.6)';
             targetCtx.beginPath();
             targetCtx.arc(centerX - radius * 0.35, centerY - radius * 0.35, radius * 0.25, 0, Math.PI * 2);
             targetCtx.fill();
 
-            // 目（おじゃまぷよは「×」目）
             if (colorId === 9) {
                 targetCtx.strokeStyle = '#ffffff';
                 targetCtx.lineWidth = 2;
@@ -1039,11 +1026,10 @@ function findMatches() {
                 }
             }
         }
-function setupInputs() {
-            // 全画面切り替えボタン
+
+        function setupInputs() {
             document.getElementById('btn-fullscreen').addEventListener('click', toggleFullscreen);
 
-            // キーボード操作
             window.addEventListener('keydown', (e) => {
                 if (e.code === 'KeyP') {
                     togglePause();
@@ -1067,7 +1053,6 @@ function setupInputs() {
                 }
             });
 
-            // スタート / リスタート
             document.getElementById('start-btn').addEventListener('click', () => {
                 if (isPaused) {
                     togglePause();
@@ -1079,10 +1064,8 @@ function setupInputs() {
                 }
             });
 
-            // ポーズ
             document.getElementById('btn-pause').addEventListener('click', togglePause);
 
-            // ランキング表示
             const showRankingHandler = () => {
                 renderRanking();
                 document.getElementById('ranking-modal').classList.remove('hidden');
@@ -1090,17 +1073,16 @@ function setupInputs() {
             document.getElementById('btn-show-ranking').addEventListener('click', showRankingHandler);
             document.getElementById('btn-ranking-open').addEventListener('click', showRankingHandler);
 
-            // ランキング閉じる
             document.getElementById('btn-close-ranking').addEventListener('click', () => {
                 document.getElementById('ranking-modal').classList.add('hidden');
             });
 
-            // タッチボタンバインド
             const bindBtnPress = (id, onPress, onRelease) => {
                 const btn = document.getElementById(id);
+                if (!btn) return;
                 const start = (e) => {
                     e.preventDefault();
-                    initAudio();
+                    try { initAudio(); } catch (err) {}
                     onPress();
                 };
                 const end = (e) => {
