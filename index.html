@@ -1,1084 +1,352 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <!-- ホーム画面追加用（PWA）設定 -->
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/jpeg" href="icon.jpg">
-    <link rel="apple-touch-icon" href="icon.jpg">
-    <meta name="theme-color" content="#10b981">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ぷよぷよ風パズルゲーム</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap');
-        
-        * {
-            box-sizing: border-box;
-            touch-action: manipulation;
-        }
-
-        html, body {
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            font-family: 'Fredoka', 'M PLUS Rounded 1c', sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311042 100%);
-            color: #f8fafc;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-
-        .app-container {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            height: 100vh;
-            height: 100dvh;
-            max-width: 480px;
-            margin: 0 auto;
-            padding: 8px 8px 24px 8px; /* 下部に余白を確保 */
-            box-sizing: border-box;
-        }
-
-        .glass-panel {
-            background: rgba(30, 41, 59, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
-        }
-
-        .btn-touch {
-            transition: transform 0.05s ease, filter 0.05s ease;
-            box-shadow: 0 4px 0 rgba(0,0,0,0.4);
-            -webkit-tap-highlight-color: transparent;
-        }
-        
-        .btn-touch:active {
-            transform: translateY(3px);
-            box-shadow: 0 1px 0 rgba(0,0,0,0.4);
-            filter: brightness(1.25);
-        }
-
-        @keyframes pulse-glow {
-            0%, 100% { filter: drop-shadow(0 0 15px rgba(236, 72, 153, 0.9)); transform: translate(-50%, -50%) scale(1); }
-            50% { filter: drop-shadow(0 0 25px rgba(250, 204, 21, 1)); transform: translate(-50%, -50%) scale(1.15); }
-        }
-
-        .combo-text {
-            animation: pulse-glow 0.6s ease-in-out infinite;
-        }
-
-        @keyframes fever-glow {
-            0%, 100% { filter: drop-shadow(0 0 15px rgba(234, 179, 8, 0.9)); }
-            50% { filter: drop-shadow(0 0 25px rgba(244, 63, 94, 1)); }
-        }
-
-        .fever-text {
-            animation: fever-glow 0.4s ease-in-out infinite;
-        }
-
-        @keyframes level-up-anim {
-            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
-            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
-            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
-        }
-
-        .level-up-text {
-            animation: level-up-anim 1.2s forwards ease-out;
-        }
-
-        .game-main {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            min-height: 0;
-            position: relative;
-        }
-
-        .canvas-wrapper {
-            position: relative;
-            height: 100%;
-            max-height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            aspect-ratio: 1 / 2;
-        }
-
-        #game-canvas {
-            height: 100%;
-            width: 100%;
-            object-fit: contain;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>超軽量ミニバスアプリ</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-slate-100 text-slate-900 min-h-screen flex flex-col font-sans select-none">
 
-    <div class="app-container">
+  <!-- ヘッダー -->
+  <header class="bg-slate-900 text-white px-4 py-3 shadow flex items-center justify-between">
+    <h1 class="font-black text-sm tracking-tight">🏀 葉梨ミニバス スコア＆管理</h1>
+    <button onclick="resetGame()" class="text-xs bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1 rounded-lg font-bold">リセット</button>
+  </header>
 
-        <!-- ヘッダーエリア -->
-        <header class="w-full flex justify-between items-center glass-panel px-3 py-1.5 rounded-2xl border border-indigo-500/30 shrink-0">
-            <div>
-                <h1 class="text-base sm:text-lg font-black bg-clip-text text-transparent bg-gradient-to-r from-pink-400 to-indigo-300 leading-none">
-                    PUYO PUYO
-                </h1>
-                <div class="flex items-center gap-1.5 mt-0.5">
-                    <span class="text-[10px] text-amber-400 font-extrabold bg-amber-950/80 px-1.5 py-0.5 rounded border border-amber-500/40" id="level-display">LV. 1</span>
-                    <span class="text-[10px] text-pink-400 font-extrabold bg-pink-950/80 px-1.5 py-0.5 rounded border border-pink-500/40 hidden" id="fever-badge">FEVER!</span>
-                </div>
-            </div>
-            
-            <!-- スコア -->
-            <div class="text-center">
-                <div class="text-[9px] text-slate-400 font-bold uppercase tracking-wider">SCORE</div>
-                <div id="score" class="text-base sm:text-lg font-extrabold text-amber-300 leading-none">0</div>
-            </div>
+  <!-- タブナビゲーション -->
+  <nav class="bg-white border-b border-slate-200 grid grid-cols-3 text-center text-xs font-black shadow-xs">
+    <button onclick="switchTab('roster')" id="tab-btn-roster" class="py-3 text-indigo-600 border-b-2 border-indigo-600">1. メンバー</button>
+    <button onclick="switchTab('match')" id="tab-btn-match" class="py-3 text-slate-500 border-b-2 border-transparent">2. 試合入力</button>
+    <button onclick="switchTab('sheet')" id="tab-btn-sheet" class="py-3 text-slate-500 border-b-2 border-transparent">3. シート</button>
+  </nav>
 
-            <!-- フィーバーゲージ -->
-            <div class="text-center w-20">
-                <div class="text-[8px] text-amber-300 font-bold uppercase tracking-wider mb-0.5">FEVER GAUGE</div>
-                <div class="w-full bg-slate-950 rounded-full h-2 border border-slate-700 overflow-hidden">
-                    <div id="fever-bar" class="bg-gradient-to-r from-amber-400 to-pink-500 h-full w-0 transition-all duration-300"></div>
-                </div>
-            </div>
+  <!-- メインコンテンツ -->
+  <main class="flex-1 p-3 max-w-md w-full mx-auto space-y-3 pb-16">
 
-            <!-- 機能ボタン群 -->
-            <div class="flex items-center gap-1">
-                <button id="btn-fullscreen" title="全画面切り替え" class="btn-touch bg-indigo-600/80 hover:bg-indigo-600 text-white w-8 h-8 rounded-xl border border-indigo-400/40 flex items-center justify-center">
-                    <i class="fa-solid fa-expand text-xs"></i>
-                </button>
-                <button id="btn-ranking-open" title="ランキング" class="btn-touch bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 w-8 h-8 rounded-xl border border-amber-500/40 flex items-center justify-center">
-                    <i class="fa-solid fa-trophy text-xs"></i>
-                </button>
-                <button id="btn-pause" title="一時停止" class="btn-touch bg-slate-800 hover:bg-slate-700 text-slate-200 w-8 h-8 rounded-xl border border-slate-600 flex items-center justify-center">
-                    <i class="fa-solid fa-pause text-xs"></i>
-                </button>
-            </div>
+    <!-- TAB 1: メンバー管理 -->
+    <section id="section-roster" class="space-y-3">
+      <div class="bg-white p-3 rounded-2xl shadow-xs border border-slate-200">
+        <h2 class="text-xs font-extrabold text-slate-700 mb-2">👥 チーム切り替え</h2>
+        <div class="grid grid-cols-2 gap-2">
+          <button onclick="setTeam('hanari')" id="team-btn-hanari" class="py-2 rounded-xl text-xs font-black bg-indigo-600 text-white">葉梨ミニバス</button>
+          <button onclick="setTeam('hatsukura')" id="team-btn-hatsukura" class="py-2 rounded-xl text-xs font-black bg-slate-100 text-slate-700">初倉ミニバス</button>
+        </div>
+      </div>
 
-            <!-- NEXTぷよ表示 -->
-            <div class="flex flex-col items-center bg-slate-900/90 p-1 rounded-xl border border-slate-700">
-                <span class="text-[8px] text-slate-400 font-bold leading-none mb-0.5">NEXT</span>
-                <canvas id="next-canvas" width="28" height="56" class="block"></canvas>
-            </div>
-        </header>
+      <div class="bg-white p-3 rounded-2xl shadow-xs border border-slate-200">
+        <h2 class="text-xs font-extrabold text-slate-700 mb-2">➕ 選手追加</h2>
+        <div class="grid grid-cols-3 gap-2 mb-2">
+          <select id="new-grade" class="border rounded-xl px-2 py-2 text-xs font-bold bg-white">
+            <option value="6">6年</option><option value="5">5年</option><option value="4">4年</option><option value="3">3年</option><option value="2">2年</option><option value="1">1年</option>
+          </select>
+          <input id="new-number" type="number" placeholder="背番号" class="border rounded-xl px-2 py-2 text-xs font-bold text-center" />
+          <input id="new-name" type="text" placeholder="選手氏名" class="border rounded-xl px-2 py-2 text-xs font-bold" />
+        </div>
+        <button onclick="addPlayer()" class="w-full bg-indigo-600 text-white font-black text-xs py-2 rounded-xl shadow">選手を追加</button>
+      </div>
 
-        <!-- ゲームフィールド -->
-        <main class="game-main my-1">
-            <div class="canvas-wrapper glass-panel p-1 rounded-2xl border-2 border-indigo-500/30">
-                <canvas id="game-canvas" width="288" height="576" class="rounded-xl bg-slate-950/90 shadow-inner block"></canvas>
+      <div class="bg-white p-3 rounded-2xl shadow-xs border border-slate-200">
+        <h2 class="text-xs font-extrabold text-slate-700 mb-2">📋 <span id="current-team-name">葉梨</span> 選手一覧（<span id="player-count">0</span>名）</h2>
+        <div id="player-list" class="space-y-1.5 max-h-[40vh] overflow-y-auto"></div>
+      </div>
+    </section>
 
-                <!-- スタート / ゲームオーバー / ポーズ オーバーレイ -->
-                <div id="overlay" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center p-4 text-center z-20 transition-all duration-300">
-                    <h2 id="overlay-title" class="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-300 to-yellow-300 mb-2">
-                        PUYO PUYO
-                    </h2>
-                    <p id="overlay-msg" class="text-xs text-slate-300 mb-4 max-w-[200px] leading-relaxed">
-                        同じ色のぷよを4つ以上繋げて消そう！大連鎖を目指せ！
-                    </p>
+    <!-- TAB 2: 試合入力 -->
+    <section id="section-match" class="hidden space-y-3">
+      <!-- スコアボード -->
+      <div class="bg-slate-900 text-white p-3 rounded-2xl shadow text-center">
+        <div class="text-[11px] font-bold text-slate-400">総得点</div>
+        <div id="match-score" class="text-4xl font-black tracking-tight">0</div>
+        <div class="text-[10px] text-amber-400 font-bold mt-0.5">⚡ 背番号タップで即【+2点】</div>
+      </div>
 
-                    <!-- 名前入力エリア（ハイスコア時） -->
-                    <div id="name-input-container" class="hidden w-full max-w-[200px] mb-3">
-                        <label class="block text-[10px] text-amber-300 font-bold mb-1">プレイヤー名を入力</label>
-                        <input type="text" id="player-name-input" maxlength="10" placeholder="なまえ" class="w-full text-center bg-slate-800 text-white font-bold px-3 py-1.5 rounded-xl border border-amber-500/50 focus:outline-none focus:border-amber-400 text-xs">
-                    </div>
+      <!-- 出場メンバー（横並びタイル 5人） -->
+      <div class="bg-white p-3 rounded-2xl shadow-xs border border-slate-200">
+        <div class="flex justify-between items-center mb-2">
+          <h2 class="text-xs font-extrabold text-slate-700">コート上の5人（タップで得点）</h2>
+          <button onclick="openSubModal()" class="text-[11px] bg-indigo-50 text-indigo-600 font-black px-2 py-1 rounded-lg border border-indigo-200">選手交代</button>
+        </div>
+        <div id="court-list" class="grid grid-cols-5 gap-1.5"></div>
+      </div>
 
-                    <div class="flex flex-col gap-2 w-full max-w-[200px]">
-                        <button id="start-btn" type="button" class="btn-touch bg-gradient-to-r from-pink-500 via-purple-600 to-indigo-600 text-white font-black py-3 rounded-full text-base sm:text-lg shadow-lg border-2 border-pink-300/50 w-full active:scale-95 cursor-pointer">
-                            START GAME
-                        </button>
-                        <button id="btn-show-ranking" type="button" class="btn-touch bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold py-2 rounded-full text-xs border border-amber-500/30 w-full flex items-center justify-center gap-1.5 cursor-pointer">
-                            <i class="fa-solid fa-trophy"></i> RANKING
-                        </button>
-                    </div>
-                </div>
+      <!-- 得点履歴 -->
+      <div class="bg-white p-3 rounded-2xl shadow-xs border border-slate-200">
+        <div class="flex justify-between items-center mb-1.5">
+          <h2 class="text-xs font-extrabold text-slate-700">直近の得点履歴</h2>
+          <button onclick="undoScore()" class="text-[10px] bg-rose-50 text-rose-600 font-bold px-2 py-0.5 rounded border border-rose-200">直近取消</button>
+        </div>
+        <div id="score-history" class="text-xs text-slate-500 space-y-1 max-h-20 overflow-y-auto"></div>
+      </div>
+    </section>
 
-                <!-- ランキング モーダル -->
-                <div id="ranking-modal" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md rounded-2xl flex flex-col items-center justify-between p-4 z-40 hidden">
-                    <div class="w-full">
-                        <h3 class="text-lg font-black text-amber-300 flex items-center justify-center gap-2 mb-3">
-                            <i class="fa-solid fa-trophy"></i> TOP SCORES
-                        </h3>
-                        <div id="ranking-list" class="flex flex-col gap-1.5 w-full text-xs">
-                        </div>
-                    </div>
-                    <button id="btn-close-ranking" type="button" class="btn-touch bg-slate-800 text-white font-bold px-6 py-2 rounded-full text-xs border border-slate-600 w-full max-w-[140px] mt-2">
-                        CLOSE
-                    </button>
-                </div>
+    <!-- TAB 3: シート表示 -->
+    <section id="section-sheet" class="hidden space-y-3">
+      <div class="bg-white p-4 rounded-2xl shadow-xs border border-slate-200 space-y-3">
+        <div class="flex justify-between items-center border-b pb-2">
+          <h2 class="text-xs font-black text-slate-900">葉梨ミニバス 公式スコア集計</h2>
+          <button onclick="window.print()" class="bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl">印刷</button>
+        </div>
+        <div class="text-xs space-y-1 text-slate-700">
+          <div><b>総得点：</b> <span id="sheet-total-score" class="text-lg font-black text-indigo-600">0</span>点</div>
+        </div>
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="bg-slate-100 border-b font-bold text-slate-600">
+              <th class="p-2 w-10 text-center">学年</th>
+              <th class="p-2 w-12 text-center">No.</th>
+              <th class="p-2">選手氏名</th>
+              <th class="p-2 text-right">得点</th>
+            </tr>
+          </thead>
+          <tbody id="sheet-tbody" class="divide-y divide-slate-100 font-medium"></tbody>
+        </table>
+      </div>
+    </section>
 
-                <!-- 連鎖表示ポップアップ -->
-                <div id="chain-pop" class="absolute top-1/2 left-1/2 pointer-events-none opacity-0 transition-all duration-300 z-30">
-                    <div id="chain-text" class="combo-text text-3xl sm:text-4xl font-black text-amber-300 drop-shadow-[0_4px_8px_rgba(0,0,0,0.9)] whitespace-nowrap">
-                        1 連鎖!
-                    </div>
-                </div>
+  </main>
 
-                <!-- レベルアップポップアップ -->
-                <div id="level-pop" class="absolute top-1/2 left-1/2 pointer-events-none opacity-0 z-30">
-                    <div id="level-text" class="level-up-text text-2xl sm:text-3xl font-black text-cyan-300 drop-shadow-[0_4px_10px_rgba(0,0,0,0.9)] whitespace-nowrap">
-                        LEVEL UP!
-                    </div>
-                </div>
-
-                <!-- フィーバーポップアップ -->
-                <div id="fever-pop" class="absolute top-1/2 left-1/2 pointer-events-none opacity-0 transition-all duration-300 z-30">
-                    <div class="fever-text text-4xl sm:text-5xl font-black text-amber-300 drop-shadow-[0_4px_10px_rgba(0,0,0,0.9)] whitespace-nowrap">
-                        FEVER MODE!!
-                    </div>
-                </div>
-            </div>
-        </main>
-   <!-- 常時固定 コントローラー -->
-        <footer class="w-full grid grid-cols-5 gap-1.5 p-2 glass-panel rounded-2xl border border-slate-700/50 shrink-0">
-            <!-- 左移動 -->
-            <button id="btn-left" type="button" class="btn-touch bg-indigo-600 active:bg-indigo-500 text-white text-xl sm:text-2xl py-2.5 sm:py-3 rounded-xl flex items-center justify-center">
-                <i class="fa-solid fa-arrow-left"></i>
-            </button>
-
-            <!-- 回転 -->
-            <button id="btn-rot-r" type="button" class="btn-touch bg-pink-600 active:bg-pink-500 text-white text-lg sm:text-xl py-2.5 sm:py-3 rounded-xl flex items-center justify-center flex-col">
-                <i class="fa-solid fa-rotate-right"></i>
-                <span class="text-[9px] font-bold mt-0.5">回転</span>
-            </button>
-
-            <!-- 高速落下（連続落下） -->
-            <button id="btn-down" type="button" class="btn-touch bg-amber-500 active:bg-amber-400 text-slate-950 text-lg sm:text-xl py-2.5 sm:py-3 rounded-xl flex items-center justify-center flex-col font-black">
-                <i class="fa-solid fa-arrow-down"></i>
-                <span class="text-[9px] font-black mt-0.5">高速落下</span>
-            </button>
-
-            <!-- ハードドロップ（即落下） -->
-            <button id="btn-hard-drop" type="button" class="btn-touch bg-red-600 active:bg-red-500 text-white text-lg sm:text-xl py-2.5 sm:py-3 rounded-xl flex items-center justify-center flex-col font-black">
-                <i class="fa-solid fa-angles-down"></i>
-                <span class="text-[9px] font-black mt-0.5">即落下</span>
-            </button>
-
-            <!-- 右移動 -->
-            <button id="btn-right" type="button" class="btn-touch bg-indigo-600 active:bg-indigo-500 text-white text-xl sm:text-2xl py-2.5 sm:py-3 rounded-xl flex items-center justify-center">
-                <i class="fa-solid fa-arrow-right"></i>
-            </button>
-        </footer>
+  <!-- 交代モーダル -->
+  <div id="sub-modal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center p-4 z-50">
+    <div class="bg-white w-full max-w-sm rounded-2xl p-4 space-y-3 shadow-xl">
+      <div class="flex justify-between items-center">
+        <h3 class="text-xs font-black text-slate-800">選手交代（コートインする選手を選択）</h3>
+        <button onclick="closeSubModal()" class="text-slate-400 font-bold px-2 py-1">✕</button>
+      </div>
+      <div id="sub-bench-list" class="space-y-1.5 max-h-[50vh] overflow-y-auto"></div>
     </div>
+  </div>
 
-    <script>
-        const COLS = 6;
-        const ROWS = 12;
-        const HIDDEN_ROWS = 1;
-        const TOTAL_ROWS = ROWS + HIDDEN_ROWS;
-        const BLOCK_SIZE = 48;
-
-        const COLORS = {
-            1: { name: 'red',    main: '#ef4444', light: '#fca5a5', shadow: '#991b1b', eye: '#7f1d1d' },
-            2: { name: 'blue',   main: '#3b82f6', light: '#93c5fd', shadow: '#1e40af', eye: '#1e3a8a' },
-            3: { name: 'green',  main: '#22c55e', light: '#86efac', shadow: '#15803d', eye: '#14532d' },
-            4: { name: 'yellow', main: '#eab308', light: '#fde047', shadow: '#a16207', eye: '#713f12' },
-            9: { name: 'ojama',  main: '#94a3b8', light: '#e2e8f0', shadow: '#475569', eye: '#1e293b' }
-        };
-
-        const ROTATIONS = [
-            [0, -1],
-            [1, 0],
-            [0, 1],
-            [-1, 0]
-        ];
-
-        let canvas, ctx;
-        let nextCanvas, nextCtx;
-        let grid = [];
-        let currentPiece = null;
-        let nextPiece = null;
-        let score = 0;
-        let level = 1;
-        let maxChain = 0;
-        let isGameOver = true;
-        let isProcessing = false;
-        let dropCounter = 0;
-        let baseDropInterval = 800;
-        let dropInterval = 800;
-        let lastTime = 0;
-        let animationId = null;
-        let isPaused = false;
-        let isSoftDropping = false;
-
-        let feverGauge = 0;
-        const FEVER_MAX = 7;
-        let isFeverMode = false;
-        let feverTimer = null;
-        let puyoDropCount = 0;
-
-        const STORAGE_KEY = 'puyo_high_scores_v3';
-
-        // 完全に安全なSE用ダミー処理
-        function playSound(type, count = 1) {}
-
-        window.onload = () => {
-            canvas = document.getElementById('game-canvas');
-            ctx = canvas.getContext('2d');
-            nextCanvas = document.getElementById('next-canvas');
-            nextCtx = nextCanvas.getContext('2d');
-
-            setupInputs();
-            draw();
-        };
-
-        function resetGame() {
-            grid = Array.from({ length: TOTAL_ROWS }, () => Array(COLS).fill(0));
-            score = 0;
-            level = 1;
-            maxChain = 0;
-            baseDropInterval = 800;
-            dropInterval = 800;
-            isGameOver = false;
-            isProcessing = false;
-            isPaused = false;
-            
-            feverGauge = 0;
-            isFeverMode = false;
-            puyoDropCount = 0;
-            if (feverTimer) clearTimeout(feverTimer);
-
-            const inputContainer = document.getElementById('name-input-container');
-            if (inputContainer) inputContainer.classList.add('hidden');
-            
-            const btnPause = document.getElementById('btn-pause');
-            if (btnPause) btnPause.innerHTML = '<i class="fa-solid fa-pause text-xs"></i>';
-            
-            const feverBadge = document.getElementById('fever-badge');
-            if (feverBadge) feverBadge.classList.add('hidden');
-
-            updateUI();
-
-            nextPiece = createRandomPiece();
-            spawnPiece();
+  <script>
+    let db = {
+      activeTeam: "hanari",
+      teams: {
+        hanari: {
+          name: "葉梨ミニバス",
+          players: [
+            { id: "h1", grade: "6", number: "1", name: "竹下 花梨" },
+            { id: "h2", grade: "6", number: "2", name: "行川 結愛" },
+            { id: "h3", grade: "6", number: "3", name: "行川 乃愛" },
+            { id: "h4", grade: "6", number: "4", name: "加藤 凛" },
+            { id: "h5", grade: "6", number: "5", name: "虎岩 朋奈" },
+            { id: "h6", grade: "5", number: "6", name: "杉山 愛奈" },
+            { id: "h7", grade: "5", number: "7", name: "富永 朝陽" },
+            { id: "h8", grade: "5", number: "8", name: "嘉納 心奈" },
+            { id: "h9", grade: "5", number: "9", name: "伊東 澪" }
+          ],
+          courtIds: ["h1", "h2", "h3", "h4", "h5"]
+        },
+        hatsukura: {
+          name: "初倉ミニバス",
+          players: [
+            { id: "t1", grade: "6", number: "1", name: "太田 葵" },
+            { id: "t2", grade: "6", number: "2", name: "翼 結香" },
+            { id: "t3", grade: "6", number: "3", name: "山村 亮太郎" },
+            { id: "t4", grade: "6", number: "4", name: "堀本 悠矢" },
+            { id: "t5", grade: "5", number: "5", name: "翼 天佑" },
+            { id: "t6", grade: "5", number: "6", name: "甲賀 虎之介" },
+            { id: "t7", grade: "5", number: "7", name: "大石 岳" }
+          ],
+          courtIds: ["t1", "t2", "t3", "t4", "t5"]
         }
+      },
+      scores: [] // { team: 'hanari', number, name, points: 2 }
+    };
 
-        function startGame() {
-            resetGame();
-            const overlay = document.getElementById('overlay');
-            if (overlay) overlay.classList.add('opacity-0', 'pointer-events-none');
-            
-            lastTime = performance.now();
-            if (animationId) cancelAnimationFrame(animationId);
-            gameLoop();
+    let subTargetIndex = 0;
+
+    function save() {
+      localStorage.setItem("light_minibas_db", JSON.stringify(db));
+    }
+    function load() {
+      const d = localStorage.getItem("light_minibas_db");
+      if (d) { try { db = JSON.parse(d); } catch(e){} }
+    }
+
+    function switchTab(tab) {
+      ["roster", "match", "sheet"].forEach(t => {
+        document.getElementById(`section-${t}`).classList.add("hidden");
+        document.getElementById(`tab-btn-${t}`).className = "py-3 text-slate-500 border-b-2 border-transparent font-black";
+      });
+      document.getElementById(`section-${tab}`).classList.remove("hidden");
+      document.getElementById(`tab-btn-${tab}`).className = "py-3 text-indigo-600 border-b-2 border-indigo-600 font-black";
+      if (tab === "match") renderMatch();
+      if (tab === "sheet") renderSheet();
+    }
+
+    function setTeam(teamKey) {
+      db.activeTeam = teamKey;
+      document.getElementById("team-btn-hanari").className = teamKey === 'hanari' ? "py-2 rounded-xl text-xs font-black bg-indigo-600 text-white" : "py-2 rounded-xl text-xs font-black bg-slate-100 text-slate-700";
+      document.getElementById("team-btn-hatsukura").className = teamKey === 'hatsukura' ? "py-2 rounded-xl text-xs font-black bg-indigo-600 text-white" : "py-2 rounded-xl text-xs font-black bg-slate-100 text-slate-700";
+      renderRoster();
+    }
+
+    function renderAll() {
+      renderRoster();
+      renderMatch();
+      renderSheet();
+    }
+
+    function renderRoster() {
+      const team = db.teams[db.activeTeam];
+      document.getElementById("current-team-name").textContent = team.name;
+      document.getElementById("player-count").textContent = team.players.length;
+      const list = document.getElementById("player-list");
+      list.innerHTML = "";
+      team.players.forEach(p => {
+        const div = document.createElement("div");
+        div.className = "flex items-center justify-between p-2 rounded-xl bg-slate-50 border border-slate-100 text-xs font-bold";
+        div.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded">${p.grade}年</span>
+            <span class="text-sm font-black text-indigo-800 w-6">#${p.number}</span>
+            <span>${escapeHtml(p.name)}</span>
+          </div>
+          <button onclick="deletePlayer('${p.id}')" class="text-rose-500 font-bold px-2 py-1">削除</button>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    function addPlayer() {
+      const grade = document.getElementById("new-grade").value;
+      const number = document.getElementById("new-number").value.trim();
+      const name = document.getElementById("new-name").value.trim();
+      if (!number || !name) { alert("背番号と氏名を入力してください"); return; }
+      const team = db.teams[db.activeTeam];
+      const newId = db.activeTeam[0] + "_" + Date.now();
+      team.players.push({ id: newId, grade, number, name });
+      if (team.courtIds.length < 5) team.courtIds.push(newId);
+      document.getElementById("new-number").value = "";
+      document.getElementById("new-name").value = "";
+      save(); renderAll();
+    }
+
+    function deletePlayer(id) {
+      const team = db.teams[db.activeTeam];
+      team.players = team.players.filter(p => p.id !== id);
+      team.courtIds = team.courtIds.filter(cid => cid !== id);
+      save(); renderAll();
+    }
+
+    function renderMatch() {
+      const team = db.teams[db.activeTeam];
+      const courtContainer = document.getElementById("court-list");
+      courtContainer.innerHTML = "";
+
+      for (let i = 0; i < 5; i++) {
+        const playerId = team.courtIds[i];
+        const player = team.players.find(p => p.id === playerId);
+        const btn = document.createElement("button");
+        btn.className = "bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl p-1.5 text-center active:scale-95 transition flex flex-col justify-between h-20";
+        if (player) {
+          btn.onclick = () => addScore(player);
+          btn.innerHTML = `
+            <div class="text-xs font-black text-indigo-800">#${player.number}</div>
+            <div class="text-[9px] font-bold text-slate-600 truncate">${escapeHtml(player.name)}</div>
+            <div class="bg-indigo-600 text-white text-[10px] font-black py-0.5 rounded">+2点</div>
+          `;
+        } else {
+          btn.onclick = () => { subTargetIndex = i; openSubModal(); };
+          btn.innerHTML = `<div class="text-[10px] text-slate-400 font-bold m-auto">+ 選択</div>`;
         }
-
-        function togglePause() {
-            if (isGameOver) return;
-            isPaused = !isPaused;
-            const overlay = document.getElementById('overlay');
-            const btnPause = document.getElementById('btn-pause');
-
-            if (isPaused) {
-                if (btnPause) btnPause.innerHTML = '<i class="fa-solid fa-play text-xs"></i>';
-                const title = document.getElementById('overlay-title');
-                if (title) title.innerText = "PAUSED";
-                const msg = document.getElementById('overlay-msg');
-                if (msg) msg.innerText = `CURRENT SCORE: ${score}`;
-                const startBtn = document.getElementById('start-btn');
-                if (startBtn) startBtn.innerText = "RESUME";
-                
-                const nameContainer = document.getElementById('name-input-container');
-                if (nameContainer) nameContainer.classList.add('hidden');
-                
-                if (overlay) overlay.classList.remove('opacity-0', 'pointer-events-none');
-            } else {
-                if (btnPause) btnPause.innerHTML = '<i class="fa-solid fa-pause text-xs"></i>';
-                if (overlay) overlay.classList.add('opacity-0', 'pointer-events-none');
-                lastTime = performance.now();
-                gameLoop();
-            }
-        }
-
-        function gameOver() {
-            isGameOver = true;
-            const btnPause = document.getElementById('btn-pause');
-            if (btnPause) btnPause.innerHTML = '<i class="fa-solid fa-pause text-xs"></i>';
-            
-            const title = document.getElementById('overlay-title');
-            if (title) title.innerText = "GAME OVER";
-            
-            const msg = document.getElementById('overlay-msg');
-            if (msg) msg.innerText = `FINAL SCORE: ${score}`;
-            
-            const startBtn = document.getElementById('start-btn');
-            if (startBtn) startBtn.innerText = "SAVE & RESTART";
-            
-            const inputContainer = document.getElementById('name-input-container');
-            if (inputContainer) inputContainer.classList.remove('hidden');
-            
-            const inputName = document.getElementById('player-name-input');
-            if (inputName) {
-                const savedName = localStorage.getItem('puyo_player_name') || '';
-                inputName.value = savedName;
-            }
-
-            const overlay = document.getElementById('overlay');
-            if (overlay) overlay.classList.remove('opacity-0', 'pointer-events-none');
-        }
-function saveScore() {
-            const inputEl = document.getElementById('player-name-input');
-            const name = (inputEl ? inputEl.value.trim() || 'NO NAME' : 'NO NAME').substring(0, 10);
-            try { localStorage.setItem('puyo_player_name', name); } catch(e){}
-
-            const scores = getHighScores();
-            scores.push({ name, score, level, maxChain, date: new Date().toLocaleDateString() });
-            scores.sort((a, b) => b.score - a.score);
-            const topScores = scores.slice(0, 5);
-
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(topScores));
-            } catch (e) {}
-        }
-
-        function getHighScores() {
-            try {
-                const data = localStorage.getItem(STORAGE_KEY);
-                return data ? JSON.parse(data) : [];
-            } catch (e) {
-                return [];
-            }
-        }
-
-        function renderRanking() {
-            const listEl = document.getElementById('ranking-list');
-            if (!listEl) return;
-            const scores = getHighScores();
-            
-            if (scores.length === 0) {
-                listEl.innerHTML = '<div class="text-slate-400 py-4 text-center">まだ記録がありません</div>';
-                return;
-            }
-
-            listEl.innerHTML = scores.map((s, idx) => `
-                <div class="flex items-center justify-between bg-slate-900/90 px-2.5 py-1.5 rounded-xl border border-slate-700/60">
-                    <div class="flex items-center gap-2">
-                        <span class="font-black ${idx === 0 ? 'text-yellow-400' : idx === 1 ? 'text-slate-300' : idx === 2 ? 'text-amber-600' : 'text-slate-500'} w-4 text-center">
-                            ${idx + 1}
-                        </span>
-                        <span class="font-bold text-slate-200 truncate max-w-[80px]">${s.name}</span>
-                    </div>
-                    <div class="text-right">
-                        <div class="font-black text-amber-300">${s.score.toLocaleString()}</div>
-                        <div class="text-[9px] text-slate-400">LV.${s.level || 1} / ${s.maxChain}連鎖</div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function createRandomPiece() {
-            const colors = [1, 2, 3, 4];
-            return {
-                x: 2,
-                y: 0,
-                rot: 0,
-                c1: colors[Math.floor(Math.random() * colors.length)],
-                c2: colors[Math.floor(Math.random() * colors.length)]
-            };
-        }
-
-        function spawnPiece() {
-            currentPiece = nextPiece;
-            nextPiece = createRandomPiece();
-            drawNextPiece();
-
-            if (checkCollision(currentPiece.x, currentPiece.y, currentPiece.rot)) {
-                gameOver();
-            }
-        }
-
-        function checkCollision(x, y, rot) {
-            if (x < 0 || x >= COLS || y >= TOTAL_ROWS) return true;
-            if (y >= 0 && grid[y][x] !== 0) return true;
-
-            const dx = ROTATIONS[rot][0];
-            const dy = ROTATIONS[rot][1];
-            const nx = x + dx;
-            const ny = y + dy;
-
-            if (nx < 0 || nx >= COLS || ny >= TOTAL_ROWS) return true;
-            if (ny >= 0 && grid[ny][nx] !== 0) return true;
-
-            return false;
-        }
-
-        function moveLeft() {
-            if (isProcessing || isGameOver || isPaused) return;
-            if (!checkCollision(currentPiece.x - 1, currentPiece.y, currentPiece.rot)) {
-                currentPiece.x--;
-            }
-        }
-
-        function moveRight() {
-            if (isProcessing || isGameOver || isPaused) return;
-            if (!checkCollision(currentPiece.x + 1, currentPiece.y, currentPiece.rot)) {
-                currentPiece.x++;
-            }
-        }
-
-        function moveDown() {
-            if (isProcessing || isGameOver || isPaused) return false;
-            if (!checkCollision(currentPiece.x, currentPiece.y + 1, currentPiece.rot)) {
-                currentPiece.y++;
-                score += isFeverMode ? 2 : 1;
-                checkLevelUp();
-                updateUI();
-                return true;
-            } else {
-                lockPiece();
-                return false;
-            }
-        }
-
-        function hardDrop() {
-            if (isProcessing || isGameOver || isPaused) return;
-            let dropCount = 0;
-            while (!checkCollision(currentPiece.x, currentPiece.y + 1, currentPiece.rot)) {
-                currentPiece.y++;
-                dropCount++;
-            }
-            score += dropCount * (isFeverMode ? 4 : 2);
-            checkLevelUp();
-            updateUI();
-            lockPiece();
-        }
-
-        function rotate(dir = 1) {
-            if (isProcessing || isGameOver || isPaused) return;
-            const nextRot = (currentPiece.rot + dir + 4) % 4;
-
-            if (!checkCollision(currentPiece.x, currentPiece.y, nextRot)) {
-                currentPiece.rot = nextRot;
-                return;
-            }
-
-            for (let offset of [-1, 1]) {
-                if (!checkCollision(currentPiece.x + offset, currentPiece.y, nextRot)) {
-                    currentPiece.x += offset;
-                    currentPiece.rot = nextRot;
-                    return;
-                }
-            }
-        }
-
-        function checkLevelUp() {
-            const newLevel = Math.floor(score / 1500) + 1;
-            if (newLevel > level) {
-                level = newLevel;
-                baseDropInterval = Math.max(120, 800 - (level - 1) * 75);
-                showLevelUpPopup();
-            }
-        }
-
-        function showLevelUpPopup() {
-            const el = document.getElementById('level-pop');
-            if (!el) return;
-            el.classList.remove('opacity-0');
-            setTimeout(() => {
-                el.classList.add('opacity-0');
-            }, 1200);
-        }
-
-        function triggerFever() {
-            isFeverMode = true;
-            const badge = document.getElementById('fever-badge');
-            if (badge) badge.classList.remove('hidden');
-            
-            const pop = document.getElementById('fever-pop');
-            if (pop) {
-                pop.classList.remove('opacity-0');
-                setTimeout(() => pop.classList.add('opacity-0'), 1500);
-            }
-
-            if (feverTimer) clearTimeout(feverTimer);
-            feverTimer = setTimeout(() => {
-                isFeverMode = false;
-                feverGauge = 0;
-                if (badge) badge.classList.add('hidden');
-                updateUI();
-            }, 10000);
-        }
-
-        function dropOjamaPuyo() {
-            if (isFeverMode) return;
-            const ojamaCount = Math.floor(Math.random() * 2) + 1;
-            for (let i = 0; i < ojamaCount; i++) {
-                const col = Math.floor(Math.random() * COLS);
-                if (grid[HIDDEN_ROWS][col] === 0) {
-                    grid[HIDDEN_ROWS][col] = 9;
-                }
-            }
-        }
-async function lockPiece() {
-            isProcessing = true;
-            puyoDropCount++;
-
-            const x1 = currentPiece.x;
-            const y1 = currentPiece.y;
-            const dx = ROTATIONS[currentPiece.rot][0];
-            const dy = ROTATIONS[currentPiece.rot][1];
-            const x2 = x1 + dx;
-            const y2 = y1 + dy;
-
-            if (y1 >= 0 && y1 < TOTAL_ROWS) grid[y1][x1] = currentPiece.c1;
-            if (y2 >= 0 && y2 < TOTAL_ROWS) grid[y2][x2] = currentPiece.c2;
-
-            if (puyoDropCount % 5 === 0) {
-                dropOjamaPuyo();
-            }
-
-            let chainCount = 0;
-            
-            while (true) {
-                const fell = applyGravity();
-                if (fell) {
-                    draw();
-                    await sleep(140);
-                }
-
-                const groupsToClear = findMatches();
-                if (groupsToClear.length === 0) break;
-
-                chainCount++;
-                if (chainCount > maxChain) maxChain = chainCount;
-
-                if (!isFeverMode) {
-                    feverGauge = Math.min(FEVER_MAX, feverGauge + 1);
-                    if (feverGauge >= FEVER_MAX) {
-                        triggerFever();
-                    }
-                }
-
-                let totalPuyosCleared = 0;
-                groupsToClear.forEach(g => totalPuyosCleared += g.length);
-                
-                const multiplier = isFeverMode ? 2 : 1;
-                const chainBonus = Math.pow(2, chainCount - 1) * 20 * multiplier;
-                score += (totalPuyosCleared * 10 + chainBonus);
-                checkLevelUp();
-                updateUI();
-
-                showChainPopup(chainCount);
-
-                await animateClear(groupsToClear);
-
-                const ojamaToClear = new Set();
-                groupsToClear.forEach(group => {
-                    group.forEach(({ r, c }) => {
-                        grid[r][c] = 0;
-                        
-                        const neighbors = [
-                            { r: r - 1, c: c }, { r: r + 1, c: c },
-                            { r: r, c: c - 1 }, { r: r, c: c + 1 }
-                        ];
-                        neighbors.forEach(n => {
-                            if (n.r >= 0 && n.r < TOTAL_ROWS && n.c >= 0 && n.c < COLS) {
-                                if (grid[n.r][n.c] === 9) {
-                                    ojamaToClear.add(`${n.r},${n.c}`);
-                                }
-                            }
-                        });
-                    });
-                });
-
-                ojamaToClear.forEach(pos => {
-                    const [r, c] = pos.split(',').map(Number);
-                    grid[r][c] = 0;
-                });
-
-                draw();
-                await sleep(180);
-            }
-
-            if (grid[HIDDEN_ROWS][2] !== 0) {
-                gameOver();
-            } else {
-                isProcessing = false;
-                spawnPiece();
-            }
-        }
-
-        function applyGravity() {
-            let moved = false;
-            for (let c = 0; c < COLS; c++) {
-                for (let r = TOTAL_ROWS - 2; r >= 0; r--) {
-                    if (grid[r][c] !== 0 && grid[r + 1][c] === 0) {
-                        let targetR = r;
-                        while (targetR + 1 < TOTAL_ROWS && grid[targetR + 1][c] === 0) {
-                            targetR++;
-                        }
-                        grid[targetR][c] = grid[r][c];
-                        grid[r][c] = 0;
-                        moved = true;
-                    }
-                }
-            }
-            return moved;
-        }
-
-        function findMatches() {
-            const visited = Array.from({ length: TOTAL_ROWS }, () => Array(COLS).fill(false));
-            const matchedGroups = [];
-
-            for (let r = 0; r < TOTAL_ROWS; r++) {
-                for (let c = 0; c < COLS; c++) {
-                    const color = grid[r][c];
-                    if (color !== 0 && color !== 9 && !visited[r][c]) {
-                        const group = [];
-                        const queue = [{ r, c }];
-                        visited[r][c] = true;
-
-                        while (queue.length > 0) {
-                            const { r: currR, c: currC } = queue.pop();
-                            group.push({ r: currR, c: currC });
-
-                            const neighbors = [
-                                { r: currR - 1, c: currC },
-                                { r: currR + 1, c: currC },
-                                { r: currR, c: currC - 1 },
-                                { r: currR, c: currC + 1 }
-                            ];
-
-                            neighbors.forEach(n => {
-                                if (
-                                    n.r >= 0 && n.r < TOTAL_ROWS &&
-                                    n.c >= 0 && n.c < COLS &&
-                                    !visited[n.r][n.c] &&
-                                    grid[n.r][n.c] === color
-                                ) {
-                                    visited[n.r][n.c] = true;
-                                    queue.push(n);
-                                }
-                            });
-                        }
-
-                        if (group.length >= 4) {
-                            matchedGroups.push(group);
-                        }
-                    }
-                }
-            }
-            return matchedGroups;
-        }
-async function animateClear(groups) {
-            for (let i = 0; i < 4; i++) {
-                draw();
-                groups.forEach(group => {
-                    group.forEach(({ r, c }) => {
-                        if (r >= HIDDEN_ROWS) {
-                            const drawY = r - HIDDEN_ROWS;
-                            ctx.fillStyle = i % 2 === 0 ? 'rgba(255, 255, 255, 0.9)' : COLORS[grid[r][c]].main;
-                            ctx.beginPath();
-                            ctx.arc(c * BLOCK_SIZE + BLOCK_SIZE / 2, drawY * BLOCK_SIZE + BLOCK_SIZE / 2, BLOCK_SIZE * 0.45, 0, Math.PI * 2);
-                            ctx.fill();
-                        }
-                    });
-                });
-                await sleep(50);
-            }
-        }
-
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            ctx.strokeStyle = isFeverMode ? 'rgba(244, 63, 94, 0.2)' : 'rgba(255, 255, 255, 0.05)';
-            ctx.lineWidth = 1;
-            for (let r = 0; r <= ROWS; r++) {
-                ctx.beginPath();
-                ctx.moveTo(0, r * BLOCK_SIZE);
-                ctx.lineTo(canvas.width, r * BLOCK_SIZE);
-                ctx.stroke();
-            }
-            for (let c = 0; c <= COLS; c++) {
-                ctx.beginPath();
-                ctx.moveTo(c * BLOCK_SIZE, 0);
-                ctx.lineTo(c * BLOCK_SIZE, canvas.height);
-                ctx.stroke();
-            }
-
-            for (let r = HIDDEN_ROWS; r < TOTAL_ROWS; r++) {
-                for (let c = 0; c < COLS; c++) {
-                    const colorId = grid[r][c];
-                    if (colorId !== 0) {
-                        drawPuyo(ctx, c * BLOCK_SIZE, (r - HIDDEN_ROWS) * BLOCK_SIZE, colorId);
-                    }
-                }
-            }
-
-            if (currentPiece && !isGameOver) {
-                const x1 = currentPiece.x;
-                const y1 = currentPiece.y;
-                const dx = ROTATIONS[currentPiece.rot][0];
-                const dy = ROTATIONS[currentPiece.rot][1];
-                const x2 = x1 + dx;
-                const y2 = y1 + dy;
-
-                if (y1 >= HIDDEN_ROWS) drawPuyo(ctx, x1 * BLOCK_SIZE, (y1 - HIDDEN_ROWS) * BLOCK_SIZE, currentPiece.c1);
-                if (y2 >= HIDDEN_ROWS) drawPuyo(ctx, x2 * BLOCK_SIZE, (y2 - HIDDEN_ROWS) * BLOCK_SIZE, currentPiece.c2);
-            }
-        }
-
-        function drawNextPiece() {
-            nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
-            if (!nextPiece) return;
-
-            const size = 24;
-            const offsetX = (nextCanvas.width - size) / 2;
-            const offsetY = 2;
-
-            drawPuyoCustom(nextCtx, offsetX, offsetY, nextPiece.c2, size);
-            drawPuyoCustom(nextCtx, offsetX, offsetY + size, nextPiece.c1, size);
-        }
-
-        function drawPuyo(targetCtx, x, y, colorId) {
-            drawPuyoCustom(targetCtx, x, y, colorId, BLOCK_SIZE);
-        }
-
-        function drawPuyoCustom(targetCtx, x, y, colorId, size) {
-            const conf = COLORS[colorId];
-            if (!conf) return;
-
-            const radius = size * 0.44;
-            const centerX = x + size / 2;
-            const centerY = y + size / 2;
-
-            targetCtx.save();
-
-            const grad = targetCtx.createRadialGradient(
-                centerX - radius * 0.3, centerY - radius * 0.3, radius * 0.1,
-                centerX, centerY, radius
-            );
-            grad.addColorStop(0, conf.light);
-            grad.addColorStop(0.7, conf.main);
-            grad.addColorStop(1, conf.shadow);
-
-            targetCtx.fillStyle = grad;
-            targetCtx.beginPath();
-            targetCtx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-            targetCtx.fill();
-
-            targetCtx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-            targetCtx.beginPath();
-            targetCtx.arc(centerX - radius * 0.35, centerY - radius * 0.35, radius * 0.25, 0, Math.PI * 2);
-            targetCtx.fill();
-
-            if (colorId === 9) {
-                targetCtx.strokeStyle = '#ffffff';
-                targetCtx.lineWidth = 2;
-                const eyeOffset = radius * 0.25;
-                
-                targetCtx.beginPath();
-                targetCtx.moveTo(centerX - eyeOffset - 3, centerY - 3);
-                targetCtx.lineTo(centerX - eyeOffset + 3, centerY + 3);
-                targetCtx.moveTo(centerX - eyeOffset + 3, centerY - 3);
-                targetCtx.lineTo(centerX - eyeOffset - 3, centerY + 3);
-                
-                targetCtx.moveTo(centerX + eyeOffset - 3, centerY - 3);
-                targetCtx.lineTo(centerX + eyeOffset + 3, centerY + 3);
-                targetCtx.moveTo(centerX + eyeOffset + 3, centerY - 3);
-                targetCtx.lineTo(centerX + eyeOffset - 3, centerY + 3);
-                targetCtx.stroke();
-            } else {
-                const eyeOffset = radius * 0.28;
-                const eyeRadius = radius * 0.18;
-                const pupilRadius = eyeRadius * 0.5;
-
-                targetCtx.fillStyle = '#ffffff';
-                targetCtx.beginPath();
-                targetCtx.arc(centerX - eyeOffset, centerY - radius * 0.05, eyeRadius, 0, Math.PI * 2);
-                targetCtx.arc(centerX + eyeOffset, centerY - radius * 0.05, eyeRadius, 0, Math.PI * 2);
-                targetCtx.fill();
-
-                targetCtx.fillStyle = conf.eye;
-                targetCtx.beginPath();
-                targetCtx.arc(centerX - eyeOffset + 1, centerY - radius * 0.05, pupilRadius, 0, Math.PI * 2);
-                targetCtx.arc(centerX + eyeOffset - 1, centerY - radius * 0.05, pupilRadius, 0, Math.PI * 2);
-                targetCtx.fill();
-            }
-
-            targetCtx.restore();
-        }
-
-        function gameLoop(time = 0) {
-            if (isGameOver || isPaused) return;
-
-            const deltaTime = time - lastTime;
-            lastTime = time;
-
-            if (!isProcessing) {
-                const currentBaseInterval = isFeverMode ? 350 : baseDropInterval;
-                dropInterval = isSoftDropping ? 40 : currentBaseInterval;
-                dropCounter += deltaTime;
-                if (dropCounter > dropInterval) {
-                    moveDown();
-                    dropCounter = 0;
-                }
-            }
-
-            draw();
-            animationId = requestAnimationFrame(gameLoop);
-        }
-
-        function updateUI() {
-            const scoreEl = document.getElementById('score');
-            if (scoreEl) scoreEl.innerText = score.toLocaleString();
-            
-            const maxChainEl = document.getElementById('max-chain');
-            if (maxChainEl) maxChainEl.innerText = `${maxChain} 連鎖`;
-            
-            const levelEl = document.getElementById('level-display');
-            if (levelEl) levelEl.innerText = `LV. ${level}`;
-            
-            const feverBar = document.getElementById('fever-bar');
-            if (feverBar) {
-                const gaugePercent = (feverGauge / FEVER_MAX) * 100;
-                feverBar.style.width = `${gaugePercent}%`;
-            }
-        }
-
-        function showChainPopup(chains) {
-            const el = document.getElementById('chain-pop');
-            const textEl = document.getElementById('chain-text');
-            if (!el || !textEl) return;
-            
-            textEl.innerText = `${chains} 連鎖!`;
-            
-            el.classList.remove('opacity-0', 'scale-50');
-            el.classList.add('opacity-100', 'scale-110');
-
-            setTimeout(() => {
-                el.classList.remove('opacity-100', 'scale-110');
-                el.classList.add('opacity-0', 'scale-50');
-            }, 750);
-        }
-
-        function sleep(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
-        }
-
-        function toggleFullscreen() {
-            const doc = window.document;
-            const docEl = doc.documentElement;
-
-            const requestFullscreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
-            const exitFullscreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
-
-            if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
-                if (requestFullscreen) {
-                    requestFullscreen.call(docEl).catch(() => {});
-                }
-            } else {
-                if (exitFullscreen) {
-                    exitFullscreen.call(doc).catch(() => {});
-                }
-            }
-        }
-
-        function setupInputs() {
-            const btnFull = document.getElementById('btn-fullscreen');
-            if (btnFull) btnFull.addEventListener('click', toggleFullscreen);
-
-            window.addEventListener('keydown', (e) => {
-                if (e.code === 'KeyP') {
-                    togglePause();
-                    return;
-                }
-                if (isGameOver || isPaused || isProcessing) return;
-
-                switch (e.code) {
-                    case 'ArrowLeft': case 'KeyA': moveLeft(); break;
-                    case 'ArrowRight': case 'KeyD': moveRight(); break;
-                    case 'ArrowDown': case 'KeyS': isSoftDropping = true; break;
-                    case 'Space': hardDrop(); break;
-                    case 'ArrowUp': case 'KeyX': case 'KeyK': rotate(1); break;
-                    case 'KeyZ': case 'KeyJ': rotate(-1); break;
-                }
-            });
-
-            window.addEventListener('keyup', (e) => {
-                if (e.code === 'ArrowDown' || e.code === 'KeyS') {
-                    isSoftDropping = false;
-                }
-            });
-
-            const startBtn = document.getElementById('start-btn');
-            if (startBtn) {
-                const handleStart = (e) => {
-                    if (e) e.preventDefault();
-                    if (isPaused) {
-                        togglePause();
-                    } else {
-                        if (isGameOver && score > 0) {
-                            saveScore();
-                        }
-                        startGame();
-                    }
-                };
-                startBtn.addEventListener('click', handleStart);
-                startBtn.addEventListener('touchstart', handleStart, { passive: false });
-            }
-
-            const btnPause = document.getElementById('btn-pause');
-            if (btnPause) btnPause.addEventListener('click', togglePause);
-
-            const showRankingHandler = (e) => {
-                if (e) e.preventDefault();
-                renderRanking();
-                const modal = document.getElementById('ranking-modal');
-                if (modal) modal.classList.remove('hidden');
-            };
-            
-            const btnShowRank = document.getElementById('btn-show-ranking');
-            if (btnShowRank) btnShowRank.addEventListener('click', showRankingHandler);
-            
-            const btnRankOpen = document.getElementById('btn-ranking-open');
-            if (btnRankOpen) btnRankOpen.addEventListener('click', showRankingHandler);
-
-            const btnCloseRank = document.getElementById('btn-close-ranking');
-            if (btnCloseRank) {
-                btnCloseRank.addEventListener('click', (e) => {
-                    if (e) e.preventDefault();
-                    const modal = document.getElementById('ranking-modal');
-                    if (modal) modal.classList.add('hidden');
-                });
-            }
-
-            const bindBtnPress = (id, onPress, onRelease) => {
-                const btn = document.getElementById(id);
-                if (!btn) return;
-                
-                const start = (e) => {
-                    if (e && e.cancelable) e.preventDefault();
-                    onPress();
-                };
-                const end = (e) => {
-                    if (e && e.cancelable) e.preventDefault();
-                    if (onRelease) onRelease();
-                };
-
-                btn.addEventListener('touchstart', start, { passive: false });
-                btn.addEventListener('touchend', end, { passive: false });
-                btn.addEventListener('mousedown', start);
-                btn.addEventListener('mouseup', end);
-                btn.addEventListener('mouseleave', end);
-            };
-
-            bindBtnPress('btn-left', moveLeft);
-            bindBtnPress('btn-right', moveRight);
-            bindBtnPress('btn-rot-r', () => rotate(1));
-            bindBtnPress('btn-down', () => { isSoftDropping = true; }, () => { isSoftDropping = false; });
-            bindBtnPress('btn-hard-drop', hardDrop);
-        }
-    </script>
+        courtContainer.appendChild(btn);
+      }
+
+      // 総得点
+      const total = db.scores.reduce((sum, s) => sum + s.points, 0);
+      document.getElementById("match-score").textContent = total;
+
+      // 履歴
+      const historyEl = document.getElementById("score-history");
+      historyEl.innerHTML = "";
+      if (db.scores.length === 0) {
+        historyEl.innerHTML = `<span class="text-slate-400">得点履歴なし</span>`;
+      } else {
+        [...db.scores].reverse().slice(0, 5).forEach(s => {
+          const div = document.createElement("div");
+          div.className = "flex justify-between items-center bg-slate-50 px-2 py-1 rounded text-xs";
+          div.innerHTML = `<span>#${s.number} ${escapeHtml(s.name)}</span><span class="font-black text-indigo-600">+${s.points}点</span>`;
+          historyEl.appendChild(div);
+        });
+      }
+    }
+
+    function addScore(player) {
+      db.scores.push({ number: player.number, name: player.name, points: 2 });
+      save(); renderMatch();
+    }
+
+    function undoScore() {
+      if (db.scores.length === 0) return;
+      db.scores.pop();
+      save(); renderMatch();
+    }
+function openSubModal() {
+      const team = db.teams[db.activeTeam];
+      const modalList = document.getElementById("sub-bench-list");
+      modalList.innerHTML = "";
+      team.players.forEach(p => {
+        const isPlaying = team.courtIds.includes(p.id);
+        const div = document.createElement("div");
+        div.className = "flex items-center justify-between p-2 rounded-xl bg-slate-50 border text-xs font-bold";
+        div.innerHTML = `
+          <div>#${p.number} ${escapeHtml(p.name)} ${isPlaying ? '<span class="text-indigo-600 text-[10px]">(コート中)</span>' : ''}</div>
+          <button onclick="substitutePlayer('${p.id}')" class="bg-indigo-600 text-white px-2.5 py-1 rounded-lg text-xs">起用</button>
+        `;
+        modalList.appendChild(div);
+      });
+      document.getElementById("sub-modal").classList.remove("hidden");
+    }
+
+    function closeSubModal() {
+      document.getElementById("sub-modal").classList.add("hidden");
+    }
+
+    function substitutePlayer(playerId) {
+      const team = db.teams[db.activeTeam];
+      team.courtIds[subTargetIndex] = playerId;
+      closeSubModal();
+      save(); renderMatch();
+    }
+
+    function renderSheet() {
+      const hanariTeam = db.teams.hanari;
+      const total = db.scores.reduce((sum, s) => sum + s.points, 0);
+      document.getElementById("sheet-total-score").textContent = total;
+
+      const ptsMap = {};
+      db.scores.forEach(s => { ptsMap[s.number] = (ptsMap[s.number] || 0) + s.points; });
+
+      const tbody = document.getElementById("sheet-tbody");
+      tbody.innerHTML = "";
+      hanariTeam.players.forEach(p => {
+        const tr = document.createElement("tr");
+        tr.className = "border-b border-slate-100";
+        tr.innerHTML = `
+          <td class="p-2 text-center font-bold text-slate-500">${p.grade}年</td>
+          <td class="p-2 text-center font-black">#${p.number}</td>
+          <td class="p-2 font-bold">${escapeHtml(p.name)}</td>
+          <td class="p-2 text-right font-black text-indigo-600">${ptsMap[p.number] || 0}点</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function resetGame() {
+      if (confirm("得点をリセットしますか？")) {
+        db.scores = [];
+        save(); renderAll();
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    load();
+    renderAll();
+  </script>
 </body>
 </html>
