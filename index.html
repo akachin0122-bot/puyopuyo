@@ -1070,31 +1070,43 @@ function openConfirmModal(title, message, onConfirm) {
       renderSetupTab();
       showToast(`#${num} ${name} を追加しました`, 'success');
     }
+    
     function importPlayersFromText() {
-  const text = document.getElementById('bulk-text-input').value;
-  if (!text.trim()) {
-    showToast('テキストを入力・貼り付けてください', 'error');
-    return;
-  }
+      const text = document.getElementById('bulk-text-input').value;
+      if (!text.trim()) {
+        showToast('テキストを入力・貼り付けてください', 'error');
+        return;
+      }
 
-  const lines = text.split('\n');
-  let addedCount = 0;
+      const lines = text.split('\n');
+      let addedCount = 0;
 
-  lines.forEach(line => {
-    // #1：太田 葵 (6年) や 1, 太田 葵 などのパターンを正規表現で柔軟に読み取り
-    const match = line.match(/(?:#)?(\d+)[\s:：、,]+(?:([1-6])年)?[\s　]*([^\s(（]+)/);
-    if (match) {
-      const num = match[1];
-      const grade = match[2] || '';
-      const name = match[3].trim();
+      lines.forEach(line => {
+        // #1森田蒼大(5年) のような形式を確実にキャッチする正規表現
+        const match = line.match(/#?(\d+)[\s:：、,]*([^\d(（]+)[(（]([1-6])年?[)）]/);
+        if (match) {
+          const num = match[1];
+          const name = match[2].trim();
+          const grade = match[3];
 
-      // 既に存在していなければ追加
-      if (!state.opponent.players.some(p => p.number === num)) {
-        state.opponent.players.push({ number: num, grade, name, active: true });
-        addedCount++;
+          if (!state.opponent.players.some(p => p.number === num)) {
+            state.opponent.players.push({ number: num, grade, name, active: true });
+            addedCount++;
+          }
+        }
+      });
+
+      state.opponent.players.sort((a, b) => Number(a.number) - Number(b.number));
+      saveToLocalStorage();
+      renderSetupTab();
+
+      document.getElementById('bulk-text-input').value = '';
+      if (addedCount > 0) {
+        showToast(`${addedCount}名の選手をまとめて登録しました！`, 'success');
+      } else {
+        showToast('選手を読み込めませんでした。書式を確認してください', 'error');
       }
     }
-  });
 
   // 背番号順に並び替え
   state.opponent.players.sort((a, b) => Number(a.number) - Number(b.number));
