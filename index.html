@@ -1121,14 +1121,7 @@ function openConfirmModal(title, message, onConfirm) {
       }
     }
 
-  // 背番号順に並び替え
-  state.opponent.players.sort((a, b) => Number(a.number) - Number(b.number));
-  saveToLocalStorage();
-  renderSetupTab();
-
-  document.getElementById('bulk-text-input').value = '';
-  showToast(`${addedCount}名の選手をまとめて登録しました！`, 'success');
-}
+  
 
 
     function removePlayer(target, idx) {
