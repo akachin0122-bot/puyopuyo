@@ -16,22 +16,25 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* 公式スコアシート用スタイル（A4縦比率ベース） */
+    /* 公式スコアシート用スタイル（A4縦1枚に完全収まる厳格レイアウト） */
     .scoresheet-wrapper {
       overflow-x: auto;
       padding-bottom: 16px;
     }
     .scoresheet-paper {
       width: 794px;
-      min-height: 1122px;
+      height: 1122px;
       background: #ffffff;
       margin: 0 auto;
-      padding: 14px 18px;
+      padding: 10px 14px;
       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
       border: 1px solid #cbd5e1;
       color: #111827;
       font-family: 'Noto Sans JP', sans-serif;
       box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
 
     .sheet-table {
@@ -40,18 +43,18 @@
     }
     .sheet-table th, .sheet-table td {
       border: 1px solid #1e293b;
-      padding: 0 2px;
+      padding: 0 1px;
       text-align: center;
-      font-size: 9.5px;
-      line-height: 1.15;
-      height: 16.5px;
+      font-size: 9px;
+      line-height: 1.1;
+      height: 15px;
     }
     .sheet-table th {
       background-color: #f1f5f9;
       font-weight: 700;
     }
 
-    /* 出場時限の斜線描画（＼: スタート出場 / ／: 途中交代出場 / ×: 両方） */
+    /* 出場時限の斜線描画 */
     .slash-start-red {
       background-image: linear-gradient(to top right, transparent 45%, #dc2626 47%, #dc2626 53%, transparent 55%);
     }
@@ -79,12 +82,12 @@
     .tf-cross-red {
       color: #dc2626;
       font-weight: 900;
-      font-size: 13px !important;
+      font-size: 12px !important;
     }
     .tf-cross-black {
       color: #111827;
       font-weight: 900;
-      font-size: 13px !important;
+      font-size: 12px !important;
     }
 
     /* ランニングスコア用 */
@@ -96,8 +99,8 @@
       border: 1px solid #1e293b;
       padding: 0;
       text-align: center;
-      font-size: 9px;
-      height: 17.5px;
+      font-size: 8.5px;
+      height: 15.5px;
       position: relative;
     }
     .rs-slash-red {
@@ -110,8 +113,8 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 14px;
-      height: 14px;
+      width: 13px;
+      height: 13px;
       border: 1.5px solid #dc2626;
       border-radius: 9999px;
       color: #dc2626;
@@ -121,8 +124,8 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      width: 14px;
-      height: 14px;
+      width: 13px;
+      height: 13px;
       border: 1.5px solid #111827;
       border-radius: 9999px;
       color: #111827;
@@ -131,12 +134,12 @@
     .rs-ft-dot-red::after {
       content: "●";
       color: #dc2626;
-      font-size: 9px;
+      font-size: 8px;
     }
     .rs-ft-dot-black::after {
       content: "●";
       color: #111827;
-      font-size: 9px;
+      font-size: 8px;
     }
     .rs-q-end-border {
       border-bottom: 2px solid #0f172a !important;
@@ -145,12 +148,14 @@
     .text-q-red { color: #dc2626; }
     .text-q-black { color: #111827; }
 
-    /* 印刷用設定 */
+    /* 厳格なA4縦1枚印刷用設定 */
     @media print {
       body {
         background: #ffffff !important;
         margin: 0 !important;
         padding: 0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
       }
       .no-print {
         display: none !important;
@@ -162,16 +167,18 @@
       .scoresheet-paper {
         box-shadow: none !important;
         border: none !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        min-height: auto !important;
-        padding: 3mm 5mm !important;
-        margin: 0 !important;
+        width: 210mm !important;
+        height: 297mm !important;
+        max-width: 210mm !important;
+        max-height: 297mm !important;
+        padding: 4mm 6mm !important;
+        margin: 0 auto !important;
+        page-break-after: avoid;
         page-break-inside: avoid;
       }
       @page {
         size: A4 portrait;
-        margin: 4mm;
+        margin: 0mm;
       }
     }
   </style>
@@ -201,9 +208,16 @@
           3. スコア表出力
         </button>
       </nav>
+
+      <!-- APIキー設定ボタン -->
+      <button onclick="openApiKeyModal()" id="header-apikey-btn"
+        class="px-2.5 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-1 shrink-0 bg-slate-800 border-slate-600 text-slate-200 hover:bg-slate-700"
+        title="Gemini APIキーの設定">
+        <span>🔑</span>
+        <span id="header-apikey-status" class="hidden sm:inline">APIキー</span>
+      </button>
     </div>
   </header>
-
   <!-- トースト通知 -->
   <div id="toast-container" class="no-print fixed top-14 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-1.5 pointer-events-none w-full max-w-sm px-3"></div>
 
@@ -265,7 +279,8 @@
           </div>
         </div>
       </div>
- <!-- 2カラム：自チーム（葉梨マスタ） & 相手チーム（カメラ・写真一覧OCR） -->
+
+      <!-- 2カラム：自チーム（葉梨マスタ） & 相手チーム（カメラ・写真一覧OCR） -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
         <!-- 左：自チーム（葉梨）マスタ -->
@@ -341,6 +356,14 @@
                 <span>写真を選択 / 撮影</span>
                 <input type="file" id="ocr-file-input" accept="image/*" class="hidden" onchange="handleOpponentImageUpload(event)" />
               </label>
+            </div>
+
+            <!-- APIキー未設定時の案内バー -->
+            <div id="ocr-apikey-warning" class="mt-2.5 pt-2 border-t border-orange-200 flex items-center justify-between gap-2 text-[11px]">
+              <span class="text-amber-800 font-bold">⚠️ AI読取を使うには最初に1回だけAPIキー登録が必要です</span>
+              <button onclick="openApiKeyModal()" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg shrink-0">
+                🔑 キーを設定する
+              </button>
             </div>
 
             <!-- OCRローディング表示 -->
@@ -462,8 +485,7 @@
           </div>
         </div>
       </div>
-
-      <!-- 2. コート出場メンバー5人 ＋「？ 不明」ボタン表示エリア（白・青） -->
+   <!-- 2. コート出場メンバー5人 ＋「？ 不明」ボタン表示エリア（白・青） -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-2 flex-1">
 
         <!-- 白チーム コート上メンバーパネル -->
@@ -507,10 +529,6 @@
           </div>
 
           <!-- コート上5人＋？不明カードコンテナ -->
-          <div id="court-blue-players" class="my-auto py-1"></div>
-        </div>
-      </div>
-    <!-- コート上5人＋？不明カードコンテナ -->
           <div id="court-blue-players" class="my-auto py-1"></div>
         </div>
       </div>
@@ -567,8 +585,8 @@
     <section id="tab-sheet" class="hidden space-y-4">
       <div class="no-print bg-white rounded-2xl shadow-sm border border-slate-200 p-3.5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 class="text-sm sm:text-base font-bold text-slate-800">公式スコアシート プレビュー（A4縦）</h2>
-          <p class="text-xs text-slate-500">1Q/3Qは赤字、2Q/4Qは黒字で自動描画されています。そのまま印刷・PDF保存できます。</p>
+          <h2 class="text-sm sm:text-base font-bold text-slate-800">公式スコアシート プレビュー（A4縦1枚）</h2>
+          <p class="text-xs text-slate-500">1Q/3Qは赤字、2Q/4Qは黒字で自動描画されます。A4縦1枚に綺麗に収まるよう最適化されています。</p>
         </div>
         <div class="flex gap-2">
           <button onclick="window.print()" class="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold rounded-xl shadow flex items-center gap-1.5">
@@ -585,6 +603,54 @@
   </main>
 
   <!-- =========================================================
+       モーダル0: Gemini APIキー設定モーダル
+  ========================================================= -->
+  <div id="apikey-modal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/65 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">🔑</span>
+          <h3 class="font-black text-base text-slate-900">Gemini APIキー設定</h3>
+        </div>
+        <button onclick="closeApiKeyModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center font-bold">✕</button>
+      </div>
+
+      <div class="space-y-2 text-xs text-slate-600 leading-relaxed">
+        <p>紙のメンバー表を写真から自動読み取り（AI-OCR）するために使用する <strong>Gemini APIキー</strong> を入力してください。</p>
+        <p class="text-[11px] text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+          💡 入力したキーは<strong>お使いのスマホ・PCのブラウザ内（localStorage）にのみ保存</strong>され、GitHub等へ公開されることはありません。
+        </p>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">APIキー（AQ. または AIzaSy...）</label>
+        <div class="relative flex items-center">
+          <input type="password" id="apikey-input" placeholder="ここにAPIキーを貼り付け"
+            class="w-full pl-3 pr-16 py-2.5 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-orange-500 outline-none" />
+          <button type="button" onclick="toggleApiKeyVisibility()" id="apikey-toggle-vis"
+            class="absolute right-2 px-2 py-1 text-[11px] font-bold text-slate-500 hover:text-slate-800 bg-slate-100 rounded-lg">
+            表示
+          </button>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between gap-2 pt-2">
+        <button onclick="clearSavedApiKey()" class="px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50">
+          キーを削除
+        </button>
+        <div class="flex gap-2">
+          <button onclick="closeApiKeyModal()" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">
+            キャンセル
+          </button>
+          <button onclick="saveApiKeyFromModal()" class="px-5 py-2 rounded-xl text-xs font-bold bg-orange-500 text-white hover:bg-orange-600 shadow">
+            保存する
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
        モーダル1: 出場メンバー選択 / 交代モーダル
   ========================================================= -->
   <div id="lineup-modal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/65 flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -598,7 +664,7 @@
       </div>
 
       <div class="px-4 py-2 bg-slate-100 border-b border-slate-200 flex items-center justify-between gap-2">
-        <span class="text-[11px] text-slate-600">コート上の5人をタップ（交代もここから切替）</span>
+        <span class="text-[11px] text-slate-600">コート上の5인을タップ（交代もここから切替）</span>
         <div class="flex gap-1.5">
           <button onclick="copyPrevQuarterLineup()" id="lm-copy-prev-btn" class="px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-[11px] font-bold shadow-xs">
             前のQと同じ5人
@@ -643,7 +709,7 @@
   </div>
 
   <!-- =========================================================
-       モーダル3: 記録履歴・背番号修正モーダル（「？ 不明」の後から修正対応）
+       モーダル3: 記録履歴・背番号修正モーダル
   ========================================================= -->
   <div id="history-modal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-lg w-full max-h-[84vh] flex flex-col shadow-xl overflow-hidden">
@@ -665,8 +731,7 @@
       </div>
     </div>
   </div>
-
-  <!-- 確認モーダル（confirm()代替） -->
+  <!-- 確認モーダル -->
   <div id="custom-modal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-xl space-y-4">
       <h3 id="modal-title" class="font-bold text-base text-slate-900">確認</h3>
@@ -679,9 +744,83 @@
   </div>
 
   <script>
-    // =========================================================================
-    // 初期マスタデータ（葉梨：添付画像から正確に転記）
-    // =========================================================================
+    const API_KEY_STORAGE_NAME = 'minibasket_gemini_api_key_v1';
+
+    function getStoredApiKey() {
+      try {
+        return (localStorage.getItem(API_KEY_STORAGE_NAME) || '').trim();
+      } catch (e) {
+        return '';
+      }
+    }
+
+    function updateApiKeyStatusUI() {
+      const key = getStoredApiKey();
+      const btn = document.getElementById('header-apikey-btn');
+      const statusText = document.getElementById('header-apikey-status');
+      const warningBar = document.getElementById('ocr-apikey-warning');
+
+      if (key) {
+        btn.className = 'px-2.5 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-1 shrink-0 bg-emerald-950/80 border-emerald-500 text-emerald-300 hover:bg-emerald-900';
+        statusText.textContent = 'API済';
+        if (warningBar) warningBar.classList.add('hidden');
+      } else {
+        btn.className = 'px-2.5 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-1 shrink-0 bg-amber-950/80 border-amber-500 text-amber-300 hover:bg-amber-900';
+        statusText.textContent = 'API未設定';
+        if (warningBar) warningBar.classList.remove('hidden');
+      }
+    }
+
+    function openApiKeyModal() {
+      const input = document.getElementById('apikey-input');
+      input.type = 'password';
+      document.getElementById('apikey-toggle-vis').textContent = '表示';
+      input.value = getStoredApiKey();
+      document.getElementById('apikey-modal').classList.remove('hidden');
+    }
+
+    function closeApiKeyModal() {
+      document.getElementById('apikey-modal').classList.add('hidden');
+    }
+
+    function toggleApiKeyVisibility() {
+      const input = document.getElementById('apikey-input');
+      const btn = document.getElementById('apikey-toggle-vis');
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = '隠す';
+      } else {
+        input.type = 'password';
+        btn.textContent = '表示';
+      }
+    }
+
+    function saveApiKeyFromModal() {
+      const val = document.getElementById('apikey-input').value.trim();
+      if (!val) {
+        showToast('APIキーを入力してください', 'error');
+        return;
+      }
+      try {
+        localStorage.setItem(API_KEY_STORAGE_NAME, val);
+        updateApiKeyStatusUI();
+        closeApiKeyModal();
+        showToast('APIキーをブラウザに保存しました！', 'success');
+      } catch (e) {
+        showToast('保存に失敗しました', 'error');
+      }
+    }
+
+    function clearSavedApiKey() {
+      try {
+        localStorage.removeItem(API_KEY_STORAGE_NAME);
+        document.getElementById('apikey-input').value = '';
+        updateApiKeyStatusUI();
+        closeApiKeyModal();
+        showToast('保存されていたAPIキーを削除しました', 'info');
+      } catch (e) {}
+    }
+
     const INITIAL_HANASHI_DATA = {
       name: "葉梨",
       coach: "青島 一月",
@@ -737,12 +876,10 @@
         { grade: "1", name: "井林 彩帆", number: "20", active: true }
       ]
     };
-  // =========================================================================
-    // アプリケーション状態管理
-    // =========================================================================
+
     let state = {
       activeTab: 'setup',
-      hanashiColor: 'white', // 'white' (上段・A) or 'blue' (下段・B)
+      hanashiColor: 'white',
       meta: {
         tournament: '練習試合',
         date: new Date().toISOString().split('T')[0],
@@ -751,48 +888,38 @@
       },
       hanashi: JSON.parse(JSON.stringify(INITIAL_HANASHI_DATA)),
       opponent: JSON.parse(JSON.stringify(SAMPLE_OPPONENT_DATA)),
-
-      currentQuarter: 1, // 1, 2, 3, 4, 5(OT)
-
-      // 入力モード: { type: 'score2' } | { type: 'ft', value: 1 } | { type: 'foul', value: 'P'|'P1'|'P2'|'U'|'T' }
+      currentQuarter: 1,
       inputMode: { type: 'score2', value: 2 },
-
-      // 現在コートに立っている5人（各Qごと）
       onCourt: {
         white: { 1: [], 2: [], 3: [], 4: [], 5: [] },
         blue: { 1: [], 2: [], 3: [], 4: [], 5: [] }
       },
-
-      // 公式スコアシート用の出場履歴（スタート出場: 'start' / 途中交代出場: 'sub' / 両方: 'both'）
       participation: {
         white: { 1: {}, 2: {}, 3: {}, 4: {}, 5: {} },
         blue: { 1: {}, 2: {}, 3: {}, 4: {}, 5: {} }
       },
-
-      // イベント履歴
       events: []
     };
 
-    // モーダル用一時変数
     let activeLineupModalSide = 'white';
     let activeTimeoutModalSide = 'white';
 
-    // 初期化
     window.addEventListener('DOMContentLoaded', () => {
       document.getElementById('meta-date').value = state.meta.date;
       loadFromLocalStorage();
+      updateApiKeyStatusUI();
       renderAll();
     });
 
     function saveToLocalStorage() {
       try {
-        localStorage.setItem('minibasket_score_state_v4', JSON.stringify(state));
+        localStorage.setItem('minibasket_score_state_v5', JSON.stringify(state));
       } catch (e) {}
     }
 
     function loadFromLocalStorage() {
       try {
-        const saved = localStorage.getItem('minibasket_score_state_v4');
+        const saved = localStorage.getItem('minibasket_score_state_v5');
         if (saved) {
           const parsed = JSON.parse(saved);
           state = { ...state, ...parsed };
@@ -818,14 +945,10 @@
       }
     }
 
-    // 指定したサイド（white / blue）が自チーム（葉梨）かどうかを判定
     function isHanashiSide(side) {
       return state.hanashiColor === side;
     }
 
-    // =========================================================================
-    // ナビゲーション＆UIユーティリティ
-    // =========================================================================
     function switchTab(tabName) {
       state.activeTab = tabName;
       ['setup', 'game', 'sheet'].forEach(t => {
@@ -857,8 +980,7 @@
         setTimeout(() => el.remove(), 200);
       }, 1700);
     }
-
-    function openConfirmModal(title, message, onConfirm) {
+function openConfirmModal(title, message, onConfirm) {
       document.getElementById('modal-title').textContent = title;
       document.getElementById('modal-message').textContent = message;
       const btn = document.getElementById('modal-confirm-btn');
@@ -873,9 +995,6 @@
       document.getElementById('custom-modal').classList.add('hidden');
     }
 
-    // =========================================================================
-    // TAB 1: チーム設定・マスタ・カメラ/写真OCR
-    // =========================================================================
     function setHanashiColor(color) {
       state.hanashiColor = color;
       saveToLocalStorage();
@@ -1002,6 +1121,14 @@
       const file = event.target.files?.[0];
       if (!file) return;
 
+      const apiKey = getStoredApiKey();
+      if (!apiKey) {
+        event.target.value = '';
+        showToast('先に「🔑 APIキー」を設定してください', 'error');
+        openApiKeyModal();
+        return;
+      }
+
       const loadingEl = document.getElementById('ocr-loading');
       loadingEl.classList.remove('hidden');
 
@@ -1058,8 +1185,7 @@
           }
         };
 
-        const apiKey = "";
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
 
         let response = null;
         for (let attempt = 0; attempt < 3; attempt++) {
@@ -1094,7 +1220,7 @@
           state.opponent.acoach = parsed.assistantCoach;
           document.getElementById('opponent-acoach').value = parsed.assistantCoach;
         }
-        if (Array.isArray(parsed.players) && parsed.players.length > 0) {
+       if (Array.isArray(parsed.players) && parsed.players.length > 0) {
           state.opponent.players = parsed.players
             .filter(p => p.name || p.number)
             .map((p, idx) => ({
@@ -1110,7 +1236,7 @@
         showToast(`${state.opponent.players.length}名の選手を読み取りました！`, 'success');
       } catch (err) {
         console.error(err);
-        showToast('画像の読み取りに失敗しました。手動入力または再度お試しください', 'error');
+        showToast('画像の読み取りに失敗しました。APIキーをご確認ください', 'error');
       } finally {
         loadingEl.classList.add('hidden');
         event.target.value = '';
@@ -1178,9 +1304,6 @@
       }
     }
 
-    // =========================================================================
-    // TAB 2: 超シンプル試合入力ロジック（1タップ即+2点 / ファウル先押し）
-    // =========================================================================
     function setQuarter(q) {
       state.currentQuarter = q;
       resetInputMode(false);
@@ -1272,7 +1395,6 @@
       }
     }
 
-    // メンバー選択 / 交代モーダル制御
     function openLineupModal(side) {
       activeLineupModalSide = side;
       renderLineupModal();
@@ -1283,7 +1405,8 @@
       document.getElementById('lineup-modal').classList.add('hidden');
       renderGameTab();
     }
-function toggleCourtPlayerInModal(number) {
+
+    function toggleCourtPlayerInModal(number) {
       const side = activeLineupModalSide;
       const q = state.currentQuarter;
       const courtArr = state.onCourt[side][q];
@@ -1294,7 +1417,7 @@ function toggleCourtPlayerInModal(number) {
         courtArr.splice(idx, 1);
       } else {
         if (courtArr.length >= 5) {
-          showToast('コートに出られるのは5人までです（先に交代で下げる選手をタップ）', 'error');
+          showToast('コートに出られるのは5人までです', 'error');
           return;
         }
         courtArr.push(number);
@@ -1312,15 +1435,9 @@ function toggleCourtPlayerInModal(number) {
     function copyPrevQuarterLineup() {
       const side = activeLineupModalSide;
       const q = state.currentQuarter;
-      if (q <= 1) {
-        showToast('1Qには前のクォーターがありません', 'error');
-        return;
-      }
+      if (q <= 1) return;
       const prevArr = state.onCourt[side][q - 1];
-      if (!prevArr || prevArr.length === 0) {
-        showToast(`${q - 1}Qの出場の記録がありません`, 'error');
-        return;
-      }
+      if (!prevArr || prevArr.length === 0) return;
       state.onCourt[side][q] = [...prevArr];
       prevArr.forEach(num => {
         if (!state.participation[side][q][num]) {
@@ -1330,9 +1447,7 @@ function toggleCourtPlayerInModal(number) {
       saveToLocalStorage();
       renderLineupModal();
       showToast(`${q - 1}Qの5人をコピーしました`, 'success');
-    }
-
-    function clearCurrentCourtLineup() {
+    }function clearCurrentCourtLineup() {
       const side = activeLineupModalSide;
       const q = state.currentQuarter;
       state.onCourt[side][q] = [];
@@ -1349,7 +1464,7 @@ function toggleCourtPlayerInModal(number) {
       const benchPlayers = team.players.filter(p => p.active !== false);
 
       document.getElementById('lm-subtitle').textContent = `${q === 5 ? 'OT' : q + 'Q'} 出場メンバー設定・交代`;
-      document.getElementById('lm-title').textContent = `${side === 'white' ? '白' : '青'}：${team.name}（${courtArr.length} / 5人出場中）`;
+      document.getElementById('lm-title').textContent = `${side === 'white' ? '白' : '青'}：${team.name}（${courtArr.length} / 5人選択中）`;
 
       const prevBtn = document.getElementById('lm-copy-prev-btn');
       if (q > 1 && state.onCourt[side][q - 1].length > 0) {
@@ -1389,7 +1504,6 @@ function toggleCourtPlayerInModal(number) {
       }).join('');
     }
 
-    // タイムアウトモーダル制御
     function openTimeoutModal(side) {
       activeTimeoutModalSide = side;
       const team = getTeamBySide(side);
@@ -1418,7 +1532,6 @@ function toggleCourtPlayerInModal(number) {
       showToast(`${teamName} タイムアウト (${q === 5 ? 'OT' : q + 'Q'}・残り${minuteLabel})`, 'info');
     }
 
-    // 履歴・背番号修正モーダル制御
     function openHistoryModal() {
       renderHistoryModalList();
       document.getElementById('history-modal').classList.remove('hidden');
@@ -1526,7 +1639,7 @@ function toggleCourtPlayerInModal(number) {
     }
 
     function confirmClearGame() {
-      openConfirmModal('試合データのリセット', '現在の得点・ファウル・出場メンバーの記録をすべて消去しますか？（チームマスタは残ります）', () => {
+      openConfirmModal('試合データのリセット', '現在の得点・ファウル・出場メンバーの記録をすべて消去しますか？', () => {
         state.events = [];
         state.onCourt = {
           white: { 1: [], 2: [], 3: [], 4: [], 5: [] },
@@ -1559,8 +1672,7 @@ function toggleCourtPlayerInModal(number) {
       });
       return res;
     }
-
-    function renderGameTab() {
+function renderGameTab() {
       const whiteTeam = getTeamBySide('white');
       const blueTeam = getTeamBySide('blue');
       const scores = calculateScores();
@@ -1568,7 +1680,6 @@ function toggleCourtPlayerInModal(number) {
       const isRedQ = (q === 1 || q === 3);
       const mode = state.inputMode;
 
-      // Qボタンハイライト
       [1, 2, 3, 4, 5].forEach(num => {
         const btn = document.getElementById(`q-btn-${num}`);
         if (num === q) {
@@ -1578,7 +1689,7 @@ function toggleCourtPlayerInModal(number) {
           btn.className = 'flex-1 py-1.5 rounded-lg text-xs font-black transition text-slate-300 hover:text-white';
         }
       });
- // インク色インジケーター
+
       const inkEl = document.getElementById('current-q-ink-indicator');
       if (isRedQ) {
         inkEl.className = 'text-[10px] font-black px-2 py-1 rounded bg-red-100 text-red-700 shrink-0';
@@ -1588,7 +1699,6 @@ function toggleCourtPlayerInModal(number) {
         inkEl.textContent = `${q === 5 ? 'OT' : q + 'Q'}：黒ペン`;
       }
 
-      // 下部入力モードバーとボタンハイライトの更新
       const barContainer = document.getElementById('action-bar-container');
       const bannerEl = document.getElementById('input-mode-banner');
       const cancelBtn = document.getElementById('cancel-mode-btn');
@@ -1617,7 +1727,6 @@ function toggleCourtPlayerInModal(number) {
         document.getElementById(`mode-btn-${mode.value}`)?.classList.add('ring-4', 'ring-slate-900', 'scale-105');
       }
 
-      // スコアボード更新
       document.getElementById('sb-white-name').textContent = whiteTeam.name;
       document.getElementById('sb-blue-name').textContent = blueTeam.name;
       document.getElementById('sb-white-score').textContent = scores.white.total;
@@ -1635,7 +1744,6 @@ function toggleCourtPlayerInModal(number) {
         <span>${scores.white.q[q]}-${scores.blue.q[q]}</span>
       `;
 
-      // コート出場メンバー5人＋「？ 不明」ボタンパネル描画
       document.getElementById('court-white-title').textContent = `白：${whiteTeam.name}`;
       document.getElementById('court-blue-title').textContent = `青：${blueTeam.name}`;
 
@@ -1646,7 +1754,6 @@ function toggleCourtPlayerInModal(number) {
         document.getElementById(`court-${side}-badge`).textContent = `${activeNums.length}/5人`;
 
         const container = document.getElementById(`court-${side}-players`);
-
         const activePlayers = activeNums
           .map(num => team.players.find(p => p.number === num))
           .filter(Boolean)
@@ -1656,7 +1763,6 @@ function toggleCourtPlayerInModal(number) {
         if (mode.type === 'foul') modeRingClass = 'ring-2 ring-orange-400';
         else if (mode.type === 'ft') modeRingClass = 'ring-2 ring-sky-400';
 
-        // 未選択時の表示
         if (activePlayers.length === 0) {
           container.innerHTML = `
             <div class="flex gap-1.5 items-stretch">
@@ -1679,9 +1785,6 @@ function toggleCourtPlayerInModal(number) {
           return;
         }
 
-        // 出場5人＋「？ 不明」ボタンの描画
-        // 葉梨側：背番号 ＋ 選手氏名を両方表示
-        // 相手側：名前は非表示にし、背番号だけを大きく太字で表示
         container.innerHTML = `
           <div class="grid grid-cols-6 gap-1">
             ${activePlayers.map(p => {
@@ -1697,7 +1800,6 @@ function toggleCourtPlayerInModal(number) {
               const safeName = p.name.replace(/'/g, "\\'");
 
               if (isHanashi) {
-                // 自チーム（葉梨）：背番号 ＋ 選手氏名を分かりやすく表示
                 return `
                   <button onclick="handlePlayerTap('${side}', '${p.number}', '${safeName}')"
                     class="relative py-2 px-0.5 rounded-xl border-2 transition active:scale-95 flex flex-col items-center justify-between min-h-[76px] ${cardCls} ${modeRingClass}">
@@ -1708,7 +1810,6 @@ function toggleCourtPlayerInModal(number) {
                   </button>
                 `;
               } else {
-                // 相手チーム：名前なし・背番号だけを大きく太字で表示
                 return `
                   <button onclick="handlePlayerTap('${side}', '${p.number}', '${safeName}')"
                     class="relative py-2 px-0.5 rounded-xl border-2 transition active:scale-95 flex flex-col items-center justify-center min-h-[76px] ${cardCls} ${modeRingClass}">
@@ -1720,7 +1821,6 @@ function toggleCourtPlayerInModal(number) {
               }
             }).join('')}
 
-            <!-- ？ 不明ボタン（見逃し時用） -->
             <button onclick="handlePlayerTap('${side}', '?', '不明')"
               class="py-2 px-0.5 rounded-xl border-2 border-dashed border-amber-400 bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-900 transition flex flex-col items-center justify-center min-h-[76px] ${modeRingClass}">
               <span class="text-xl sm:text-2xl font-black leading-none">？</span>
@@ -1731,9 +1831,6 @@ function toggleCourtPlayerInModal(number) {
       });
     }
 
-    // =========================================================================
-    // TAB 3: 公式スコアシート（Basketball Manual ver.230415形式）HTML生成
-    // =========================================================================
     function renderScoresheetTab() {
       const whiteTeam = getTeamBySide('white');
       const blueTeam = getTeamBySide('blue');
@@ -1814,77 +1911,77 @@ function toggleCourtPlayerInModal(number) {
             <tr>
               <td>${rowNo}</td>
               <td>${p.grade || ''}</td>
-              <td class="text-left pl-1 font-medium truncate max-w-[115px]">${p.name}</td>
+              <td class="text-left pl-1 font-medium truncate max-w-[110px]">${p.name}</td>
               <td class="font-bold">${p.number}</td>
               ${qCells}
               ${fCells}
             </tr>
           `;
         }
-const borderColorCls = side === 'white' ? 'border-slate-900' : 'border-red-700';
+
+        const borderColorCls = side === 'white' ? 'border-slate-900' : 'border-red-700';
 
         return `
-          <div class="border-2 ${borderColorCls} p-1.5 bg-white">
-            <div class="flex items-center justify-between mb-1">
-              <div class="flex items-baseline gap-2 pl-1">
-                <span class="text-[9px] font-bold">チーム：<br>Team</span>
-                <span class="text-base font-black tracking-wide ml-2">${team.name}</span>
-                <span class="text-xs font-bold ml-3">（ ${colorLabel} ）</span>
+          <div class="border-2 ${borderColorCls} p-1 bg-white">
+            <div class="flex items-center justify-between mb-0.5">
+              <div class="flex items-baseline gap-1.5 pl-1">
+                <span class="text-[8.5px] font-bold">チーム:</span>
+                <span class="text-sm font-black tracking-wide">${team.name}</span>
+                <span class="text-[10px] font-bold">（ ${colorLabel} ）</span>
               </div>
-              <table class="border-collapse border border-slate-900 text-center" style="width: 115px;">
+              <table class="border-collapse border border-slate-900 text-center" style="width: 105px;">
                 <tr>
-                  <th colspan="5" class="border border-slate-900 text-[8px] bg-slate-100 py-0.5">タイムアウト</th>
+                  <th colspan="5" class="border border-slate-900 text-[7.5px] bg-slate-100 py-0">タイムアウト</th>
                 </tr>
                 <tr>
-                  <th class="border border-slate-900 text-[8px] w-1/5">①</th>
-                  <th class="border border-slate-900 text-[8px] w-1/5">②</th>
-                  <th class="border border-slate-900 text-[8px] w-1/5">③</th>
-                  <th class="border border-slate-900 text-[8px] w-1/5">④</th>
-                  <th class="border border-slate-900 text-[8px] w-1/5">OT</th>
+                  <th class="border border-slate-900 text-[7.5px] w-1/5">①</th>
+                  <th class="border border-slate-900 text-[7.5px] w-1/5">②</th>
+                  <th class="border border-slate-900 text-[7.5px] w-1/5">③</th>
+                  <th class="border border-slate-900 text-[7.5px] w-1/5">④</th>
+                  <th class="border border-slate-900 text-[7.5px] w-1/5">OT</th>
                 </tr>
-                <tr style="height: 16px;">
-                  <td class="border border-slate-900 text-[9px]">${tos[0]}</td>
-                  <td class="border border-slate-900 text-[9px]">${tos[1]}</td>
-                  <td class="border border-slate-900 text-[9px]">${tos[2]}</td>
-                  <td class="border border-slate-900 text-[9px]">${tos[3]}</td>
-                  <td class="border border-slate-900 text-[9px]">${tos[4]}</td>
+                <tr style="height: 14px;">
+                  <td class="border border-slate-900 text-[8.5px]">${tos[0]}</td>
+                  <td class="border border-slate-900 text-[8.5px]">${tos[1]}</td>
+                  <td class="border border-slate-900 text-[8.5px]">${tos[2]}</td>
+                  <td class="border border-slate-900 text-[8.5px]">${tos[3]}</td>
+                  <td class="border border-slate-900 text-[8.5px]">${tos[4]}</td>
                 </tr>
               </table>
             </div>
-
-            <table class="sheet-table">
+  <table class="sheet-table">
               <thead>
                 <tr>
-                  <th rowspan="2" style="width: 18px;">No.</th>
-                  <th rowspan="2" style="width: 22px;">学年</th>
-                  <th rowspan="2" style="width: 115px;">選手氏名<br><span class="text-[7px] font-normal">Players</span></th>
-                  <th rowspan="2" style="width: 22px;">No.</th>
+                  <th rowspan="2" style="width: 16px;">No.</th>
+                  <th rowspan="2" style="width: 20px;">学年</th>
+                  <th rowspan="2" style="width: 110px;">選手氏名</th>
+                  <th rowspan="2" style="width: 20px;">No.</th>
                   <th colspan="4">出場時限</th>
                   <th colspan="5">ファウル</th>
                 </tr>
                 <tr>
-                  <th style="width: 15px;">①</th>
-                  <th style="width: 15px;">②</th>
-                  <th style="width: 15px;">③</th>
-                  <th style="width: 15px;">④</th>
-                  <th style="width: 18px;">1</th>
-                  <th style="width: 18px;">2</th>
-                  <th style="width: 18px;">3</th>
-                  <th style="width: 18px;">4</th>
-                  <th style="width: 18px;">5</th>
+                  <th style="width: 14px;">①</th>
+                  <th style="width: 14px;">②</th>
+                  <th style="width: 14px;">③</th>
+                  <th style="width: 14px;">④</th>
+                  <th style="width: 16px;">1</th>
+                  <th style="width: 16px;">2</th>
+                  <th style="width: 16px;">3</th>
+                  <th style="width: 16px;">4</th>
+                  <th style="width: 16px;">5</th>
                 </tr>
               </thead>
               <tbody>
                 ${rowsHTML}
                 <tr>
-                  <td colspan="2" class="font-bold text-left pl-1">コーチ：</td>
-                  <td colspan="2" class="text-left pl-1 font-medium">${team.coach || ''}</td>
+                  <td colspan="2" class="font-bold text-left pl-1 text-[8px]">コーチ：</td>
+                  <td colspan="2" class="text-left pl-1 font-medium text-[8px]">${team.coach || ''}</td>
                   <td colspan="4" class="bg-slate-100"></td>
                   <td></td><td></td><td></td><td></td><td></td>
                 </tr>
                 <tr>
-                  <td colspan="2" class="font-bold text-left pl-1">A.コーチ：</td>
-                  <td colspan="2" class="text-left pl-1 font-medium truncate max-w-[130px]">${team.acoach || ''}</td>
+                  <td colspan="2" class="font-bold text-left pl-1 text-[8px]">A.コーチ：</td>
+                  <td colspan="2" class="text-left pl-1 font-medium truncate max-w-[120px] text-[8px]">${team.acoach || ''}</td>
                   <td colspan="4" class="bg-slate-100"></td>
                   <td></td><td></td><td></td><td></td><td></td>
                 </tr>
@@ -1902,17 +1999,17 @@ const borderColorCls = side === 'white' ? 'border-slate-900' : 'border-red-700';
             const c1 = tf[q1] >= n ? 'tf-cross-red' : '';
             const c2 = tf[q2] >= n ? 'tf-cross-black' : '';
             rows += `
-              <tr style="height: 17px;">
+              <tr style="height: 15px;">
                 <td class="border border-slate-900 w-1/2 ${c1}">${tf[q1] >= n ? '×' : n}</td>
                 <td class="border border-slate-900 w-1/2 ${c2}">${tf[q2] >= n ? '×' : n}</td>
               </tr>
             `;
           }
           return `
-            <table class="border-collapse border border-slate-900 text-center w-full text-[9px] bg-white">
+            <table class="border-collapse border border-slate-900 text-center w-full text-[8.5px] bg-white">
               <tr>
-                <th class="border border-slate-900 bg-slate-100 py-0.5">${q1}Q</th>
-                <th class="border border-slate-900 bg-slate-100 py-0.5">${q2}Q</th>
+                <th class="border border-slate-900 bg-slate-100 py-0">${q1}Q</th>
+                <th class="border border-slate-900 bg-slate-100 py-0">${q2}Q</th>
               </tr>
               ${rows}
             </table>
@@ -1920,12 +2017,12 @@ const borderColorCls = side === 'white' ? 'border-slate-900' : 'border-red-700';
         };
 
         return `
-          <div class="flex flex-col justify-between h-full py-2">
+          <div class="flex flex-col justify-between h-full py-1">
             <div>
-              <div class="text-[8px] font-bold text-center leading-tight mb-1">チーム<br>ファウル</div>
+              <div class="text-[7.5px] font-bold text-center leading-tight mb-0.5">チーム<br>ファウル</div>
               ${makeBox(1, 2)}
             </div>
-            <div class="mt-4">
+            <div class="mt-2">
               ${makeBox(3, 4)}
             </div>
           </div>
@@ -1991,8 +2088,8 @@ const borderColorCls = side === 'white' ? 'border-slate-900' : 'border-red-700';
             <table class="rs-table">
               <thead>
                 <tr>
-                  <th colspan="2" class="bg-slate-100 text-[9px] py-0.5">A (白)</th>
-                  <th colspan="2" class="bg-slate-100 text-[9px] py-0.5">B (青)</th>
+                  <th colspan="2" class="bg-slate-100 text-[8px] py-0">A(白)</th>
+                  <th colspan="2" class="bg-slate-100 text-[8px] py-0">B(青)</th>
                 </tr>
               </thead>
               <tbody>
@@ -2005,77 +2102,77 @@ const borderColorCls = side === 'white' ? 'border-slate-900' : 'border-red-700';
 
       const renderArea = document.getElementById('scoresheet-render-area');
       renderArea.innerHTML = `
-        <div class="flex items-end justify-between mb-1">
+        <div class="flex items-end justify-between mb-0.5">
           <div>
-            <div class="text-lg font-black tracking-wider leading-none">MINI-BASKETBALL SCORESHEET</div>
-            <div class="text-[9px] text-slate-600 mt-0.5">Basketball Manual ver.230415 Digital Edition</div>
+            <div class="text-base font-black tracking-wider leading-none">MINI-BASKETBALL SCORESHEET</div>
+            <div class="text-[8px] text-slate-600">Basketball Manual ver.230415 Digital Edition</div>
           </div>
-          <div class="text-[9px] text-slate-500">1Q・3Q：赤 ／ 2Q・4Q・延長：黒</div>
+          <div class="text-[8px] text-slate-500">1Q/3Q:赤 ／ 2Q/4Q/OT:黒</div>
         </div>
 
-        <div class="grid grid-cols-12 border-2 border-slate-900 mb-2 bg-white">
+        <div class="grid grid-cols-12 border-2 border-slate-900 mb-1 bg-white">
           <div class="col-span-6 border-r-2 border-slate-900 flex flex-col">
-            <div class="flex items-center border-b border-slate-900 px-2 py-1">
-              <span class="text-[10px] font-bold w-14">大会名</span>
-              <span class="text-sm font-black flex-1 text-center">${state.meta.tournament || ''}</span>
+            <div class="flex items-center border-b border-slate-900 px-2 py-0.5">
+              <span class="text-[9px] font-bold w-12">大会名</span>
+              <span class="text-xs font-black flex-1 text-center truncate">${state.meta.tournament || ''}</span>
             </div>
-            <div class="flex-1 p-1.5 flex items-center justify-between gap-1">
-              <div class="text-[9px] font-bold leading-tight">スコア<br>Score</div>
+            <div class="flex-1 p-1 flex items-center justify-between gap-1">
+              <div class="text-[8.5px] font-bold leading-tight">スコア</div>
               <div class="flex flex-col items-center">
-                <span class="text-[10px] font-bold mb-0.5 truncate max-w-[75px]">${whiteTeam.name}</span>
-                <div class="w-14 h-10 border-2 border-slate-900 flex items-center justify-center text-xl font-black">
+                <span class="text-[8.5px] font-bold truncate max-w-[65px]">${whiteTeam.name}</span>
+                <div class="w-12 h-8 border-2 border-slate-900 flex items-center justify-center text-lg font-black">
                   ${scores.white.total}
                 </div>
               </div>
-              <div class="text-[10px] font-bold leading-snug px-1 border-x border-slate-300">
-                <div class="text-q-red flex justify-between gap-3"><span>${scores.white.q[1]}</span><span>-</span><span>${scores.blue.q[1]}</span></div>
-                <div class="text-q-black flex justify-between gap-3"><span>${scores.white.q[2]}</span><span>-</span><span>${scores.blue.q[2]}</span></div>
-                <div class="text-q-red flex justify-between gap-3"><span>${scores.white.q[3]}</span><span>-</span><span>${scores.blue.q[3]}</span></div>
-                <div class="text-q-black flex justify-between gap-3"><span>${scores.white.q[4]}</span><span>-</span><span>${scores.blue.q[4]}</span></div>
-                <div class="text-[8px] text-center text-slate-500">（延長 ${scores.white.q[5]}-${scores.blue.q[5]}）</div>
+              <div class="text-[9px] font-bold leading-snug px-1 border-x border-slate-300">
+                <div class="text-q-red flex justify-between gap-2"><span>${scores.white.q[1]}</span><span>-</span><span>${scores.blue.q[1]}</span></div>
+                <div class="text-q-black flex justify-between gap-2"><span>${scores.white.q[2]}</span><span>-</span><span>${scores.blue.q[2]}</span></div>
+                <div class="text-q-red flex justify-between gap-2"><span>${scores.white.q[3]}</span><span>-</span><span>${scores.blue.q[3]}</span></div>
+                <div class="text-q-black flex justify-between gap-2"><span>${scores.white.q[4]}</span><span>-</span><span>${scores.blue.q[4]}</span></div>
+                <div class="text-[7.5px] text-center text-slate-500">（延長 ${scores.white.q[5]}-${scores.blue.q[5]}）</div>
               </div>
               <div class="flex flex-col items-center">
-                <span class="text-[10px] font-bold mb-0.5 truncate max-w-[75px]">${blueTeam.name}</span>
-                <div class="w-14 h-10 border-2 border-slate-900 flex items-center justify-center text-xl font-black">
+                <span class="text-[8.5px] font-bold truncate max-w-[65px]">${blueTeam.name}</span>
+                <div class="w-12 h-8 border-2 border-slate-900 flex items-center justify-center text-lg font-black">
                   ${scores.blue.total}
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="col-span-6 flex flex-col text-[9px]">
+          <div class="col-span-6 flex flex-col text-[8.5px]">
             <div class="grid grid-cols-12 border-b border-slate-900">
-              <div class="col-span-2 border-r border-slate-900 p-1 font-bold flex items-center justify-center">日付</div>
-              <div class="col-span-6 border-r border-slate-900 p-1 flex items-center justify-center font-bold">
-                ${dateParts.y} 年 ${dateParts.m} 月 ${dateParts.d} 日
+              <div class="col-span-2 border-r border-slate-900 p-0.5 font-bold flex items-center justify-center">日付</div>
+              <div class="col-span-6 border-r border-slate-900 p-0.5 flex items-center justify-center font-bold">
+                ${dateParts.y}年 ${dateParts.m}月 ${dateParts.d}日
               </div>
-              <div class="col-span-2 border-r border-slate-900 p-1 font-bold flex items-center justify-center">時間</div>
-              <div class="col-span-2 p-1 flex items-center justify-center font-bold">${state.meta.time || '：'}</div>
+              <div class="col-span-2 border-r border-slate-900 p-0.5 font-bold flex items-center justify-center">時間</div>
+              <div class="col-span-2 p-0.5 flex items-center justify-center font-bold">${state.meta.time || '：'}</div>
             </div>
             <div class="grid grid-cols-12 border-b border-slate-900">
-              <div class="col-span-2 border-r border-slate-900 p-1 font-bold flex items-center justify-center">会場</div>
-              <div class="col-span-6 border-r border-slate-900 p-1 flex items-center justify-center font-bold">${state.meta.venue || ''}</div>
-              <div class="col-span-2 border-r border-slate-900 p-1 text-[8px] flex items-center justify-center">Game No.</div>
-              <div class="col-span-2 p-1"></div>
+              <div class="col-span-2 border-r border-slate-900 p-0.5 font-bold flex items-center justify-center">会場</div>
+              <div class="col-span-6 border-r border-slate-900 p-0.5 flex items-center justify-center font-bold truncate">${state.meta.venue || ''}</div>
+              <div class="col-span-2 border-r border-slate-900 p-0.5 text-[7.5px] flex items-center justify-center">Game</div>
+              <div class="col-span-2 p-0.5"></div>
             </div>
             <div class="grid grid-cols-2 border-b border-slate-900 flex-1">
-              <div class="border-r border-slate-900 p-1 text-[8px]">クルーチーフ</div>
-              <div class="p-1 text-[8px]">アンパイア</div>
+              <div class="border-r border-slate-900 p-0.5 text-[7.5px]">クルーチーフ:</div>
+              <div class="p-0.5 text-[7.5px]">アンパイア:</div>
             </div>
             <div class="grid grid-cols-2 border-b border-slate-900 flex-1">
-              <div class="border-r border-slate-900 p-1 text-[8px]">スコアラー</div>
-              <div class="p-1 text-[8px]">タイマー</div>
+              <div class="border-r border-slate-900 p-0.5 text-[7.5px]">スコアラー:</div>
+              <div class="p-0.5 text-[7.5px]">タイマー:</div>
             </div>
             <div class="grid grid-cols-2 flex-1">
-              <div class="border-r border-slate-900 p-1 text-[8px]">A・スコアラー</div>
-              <div class="p-1 text-[8px]">ショットクロックオペレーター</div>
+              <div class="border-r border-slate-900 p-0.5 text-[7.5px]">A・スコアラー:</div>
+              <div class="p-0.5 text-[7.5px]">ショットクロック:</div>
             </div>
           </div>
         </div>
 
-        <div class="grid grid-cols-12 gap-2">
-          <div class="col-span-7 flex flex-col justify-between gap-2">
-            <div class="grid grid-cols-12 gap-1.5">
+        <div class="grid grid-cols-12 gap-1.5 flex-1">
+          <div class="col-span-7 flex flex-col justify-between gap-1">
+            <div class="grid grid-cols-12 gap-1">
               <div class="col-span-10">
                 ${buildRosterTableHTML('white', whiteTeam, '白')}
               </div>
@@ -2084,7 +2181,7 @@ const borderColorCls = side === 'white' ? 'border-slate-900' : 'border-red-700';
               </div>
             </div>
 
-            <div class="grid grid-cols-12 gap-1.5">
+            <div class="grid grid-cols-12 gap-1">
               <div class="col-span-10">
                 ${buildRosterTableHTML('blue', blueTeam, '青')}
               </div>
@@ -2094,17 +2191,18 @@ const borderColorCls = side === 'white' ? 'border-slate-900' : 'border-red-700';
             </div>
           </div>
 
-          <div class="col-span-5 border-2 border-slate-900 p-1 bg-white">
-            <div class="text-center font-bold text-[10px] pb-1 border-b border-slate-900 mb-1">
-              ランニング スコア　<span class="tracking-wider">RUNNING SCORE</span>
+          <div class="col-span-5 border-2 border-slate-900 p-1 bg-white flex flex-col">
+            <div class="text-center font-bold text-[9px] pb-0.5 border-b border-slate-900 mb-0.5">
+              ランニング スコア <span class="tracking-wider">RUNNING SCORE</span>
             </div>
-            <div class="grid grid-cols-3 gap-1">
+            <div class="grid grid-cols-3 gap-0.5 flex-1">
               ${buildRunningScoreColumns()}
             </div>
           </div>
         </div>
       `;
     }
+
     function renderAll() {
       renderSetupTab();
       renderGameTab();
