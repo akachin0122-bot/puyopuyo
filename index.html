@@ -208,8 +208,7 @@
           3. スコア表出力
         </button>
       </nav>
-
-      <!-- APIキー設定ボタン -->
+   <!-- APIキー設定ボタン -->
       <button onclick="openApiKeyModal()" id="header-apikey-btn"
         class="px-2.5 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-1 shrink-0 bg-slate-800 border-slate-600 text-slate-200 hover:bg-slate-700"
         title="Gemini APIキーの設定">
@@ -254,7 +253,8 @@
             </button>
           </div>
         </div>
-  <!-- 試合メタデータ入力 -->
+
+        <!-- 試合メタデータ入力 -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3.5">
           <div>
             <label class="block text-xs font-bold text-slate-600 mb-1">大会名</label>
@@ -335,9 +335,6 @@
               </div>
               <p class="text-[11px] text-slate-500 mt-0.5">紙のメンバー表をカメラ撮影 or 写真一覧から自動読取</p>
             </div>
-            <button onclick="loadSampleOpponent()" class="px-2.5 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 text-xs font-bold rounded-lg shrink-0">
-              サンプル読込
-            </button>
           </div>
 
           <!-- カメラ / 写真一覧 選択エリア -->
@@ -379,18 +376,18 @@
           <div class="mt-3 space-y-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
             <div>
               <label class="block text-[11px] font-bold text-slate-500">相手チーム名</label>
-              <input type="text" id="opponent-name" value="六合東ミニバス" placeholder="チーム名を入力" oninput="updateOpponentName()"
+              <input type="text" id="opponent-name" value="" placeholder="チーム名を入力" oninput="updateOpponentName()"
                 class="w-full mt-0.5 px-2.5 py-1 text-xs font-bold bg-white border border-slate-300 rounded-lg" />
             </div>
             <div class="grid grid-cols-2 gap-2">
               <div>
                 <label class="block text-[11px] font-bold text-slate-500">コーチ</label>
-                <input type="text" id="opponent-coach" value="岩本 謙一" oninput="updateTeamCoach('opponent')"
+                <input type="text" id="opponent-coach" value="" oninput="updateTeamCoach('opponent')"
                   class="w-full mt-0.5 px-2 py-1 text-xs bg-white border border-slate-300 rounded-lg" />
               </div>
               <div>
                 <label class="block text-[11px] font-bold text-slate-500">A.コーチ</label>
-                <input type="text" id="opponent-acoach" value="鈴木 澪" oninput="updateTeamCoach('opponent')"
+                <input type="text" id="opponent-acoach" value="" oninput="updateTeamCoach('opponent')"
                   class="w-full mt-0.5 px-2 py-1 text-xs bg-white border border-slate-300 rounded-lg" />
               </div>
             </div>
@@ -405,6 +402,7 @@
               +追加
             </button>
           </div>
+
           <!-- ▼ テキスト一括登録エリア -->
           <div class="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
             <p class="text-xs font-bold text-slate-700">📝 テキストからまとめて一括登録</p>
@@ -429,16 +427,12 @@
         </button>
       </div>
     </section>
-
-
-    <!-- =========================================================
-         TAB 2: ゼロスクロール・1タップ即2点＆ファウル先押し 試合入力画面
+<!-- =========================================================
+         TAB 2: 試合入力画面
     ========================================================= -->
     <section id="tab-game" class="hidden flex-1 flex flex-col justify-between gap-2">
 
-      <!-- 1. コンパクト上部スコアボード＆クォーター切替 -->
       <div class="bg-slate-900 text-white rounded-2xl p-2.5 shadow-md">
-        <!-- クォーター切替 ＋ 戻る ＋ 履歴・修正ボタン -->
         <div class="flex items-center justify-between gap-1.5 mb-2">
           <div class="flex gap-1 bg-slate-800 p-0.5 rounded-xl flex-1">
             <button onclick="setQuarter(1)" id="q-btn-1" class="flex-1 py-1.5 rounded-lg text-xs font-black transition bg-red-600 text-white">1Q</button>
@@ -455,9 +449,7 @@
           </button>
         </div>
 
-        <!-- スコア表示行 -->
         <div class="grid grid-cols-11 items-center gap-1.5 text-center">
-          <!-- 白チーム -->
           <div class="col-span-5 bg-white text-slate-900 rounded-xl px-2 py-1.5 flex items-center justify-between border border-slate-300">
             <div class="text-left min-w-0">
               <div class="flex items-center gap-1">
@@ -471,18 +463,16 @@
             <div id="sb-white-score" class="text-2xl sm:text-3xl font-black tracking-tight pl-1">0</div>
           </div>
 
-          <!-- 中央Q別ミニ表示 -->
           <div class="col-span-1 flex flex-col items-center justify-center text-[9px] text-slate-400 font-bold leading-tight" id="sb-q-mini">
             <span>1Q</span>
             <span>0-0</span>
           </div>
 
-          <!-- 青チーム -->
           <div class="col-span-5 bg-blue-950 text-white rounded-xl px-2 py-1.5 flex items-center justify-between border border-blue-500">
             <div id="sb-blue-score" class="text-2xl sm:text-3xl font-black tracking-tight pr-1">0</div>
             <div class="text-right min-w-0">
               <div class="flex items-center justify-end gap-1">
-                <span id="sb-blue-name" class="font-bold text-xs truncate">六合東</span>
+                <span id="sb-blue-name" class="font-bold text-xs truncate">対戦相手</span>
                 <span class="text-[10px] font-black px-1 rounded bg-blue-600 text-white">青</span>
               </div>
               <div class="text-[10px] text-blue-200 mt-0.5">
@@ -493,10 +483,7 @@
         </div>
       </div>
 
-      <!-- 2. コート出場メンバー5人 ＋「？ 不明」ボタン表示エリア（白・青） -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-2 flex-1">
-
-        <!-- 白チーム コート上メンバーパネル -->
         <div id="panel-white" class="bg-white rounded-2xl border-2 border-slate-300 p-2.5 shadow-sm flex flex-col justify-between transition-colors">
           <div class="flex items-center justify-between gap-1.5 pb-2 border-b border-slate-100">
             <div class="flex items-center gap-1.5 min-w-0">
@@ -513,17 +500,14 @@
               </button>
             </div>
           </div>
-
-          <!-- コート上5人＋？不明カードコンテナ -->
           <div id="court-white-players" class="my-auto py-1"></div>
         </div>
 
-        <!-- 青チーム コート上メンバーパネル -->
         <div id="panel-blue" class="bg-blue-50/70 rounded-2xl border-2 border-blue-400 p-2.5 shadow-sm flex flex-col justify-between transition-colors">
           <div class="flex items-center justify-between gap-1.5 pb-2 border-b border-blue-200/70">
             <div class="flex items-center gap-1.5 min-w-0">
               <span class="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0"></span>
-              <span id="court-blue-title" class="font-black text-xs sm:text-sm text-blue-950 truncate">青：六合東ミニバス</span>
+              <span id="court-blue-title" class="font-black text-xs sm:text-sm text-blue-950 truncate">青：対戦相手</span>
               <span id="court-blue-badge" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-900 shrink-0">0/5人</span>
             </div>
             <div class="flex items-center gap-1 shrink-0">
@@ -535,15 +519,11 @@
               </button>
             </div>
           </div>
-
-          <!-- コート上5人＋？不明カードコンテナ -->
           <div id="court-blue-players" class="my-auto py-1"></div>
         </div>
       </div>
 
-      <!-- 3. 画面下部固定・入力モード切替バー（通常1タップ+2点 / FT+1点 / ファウル先押し） -->
       <div id="action-bar-container" class="bg-white rounded-2xl shadow-md border-2 border-slate-300 p-2.5 sticky bottom-2 z-30 transition-all">
-        <!-- 現在の入力モード表示バー -->
         <div class="flex items-center justify-between gap-2 mb-2">
           <div id="input-mode-banner" class="flex items-center gap-1.5 text-xs font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 flex-1">
             <span>🏀 通常モード：背番号タップで即【+2点】</span>
@@ -556,7 +536,6 @@
           </span>
         </div>
 
-        <!-- 特殊アクションボタン（+1点FT & ファウル種別 P / P1 / P2 / U / T） -->
         <div class="grid grid-cols-6 gap-1.5">
           <button onclick="setInputMode('ft', 1)" id="mode-btn-ft"
             class="py-2 bg-sky-600 hover:bg-sky-700 active:scale-95 text-white rounded-xl font-black text-xs shadow-sm leading-tight transition">
@@ -586,15 +565,14 @@
       </div>
     </section>
 
-
     <!-- =========================================================
-         TAB 3: 公式スコアシート出力（プレビュー・印刷）
+         TAB 3: スコア表出力
     ========================================================= -->
     <section id="tab-sheet" class="hidden space-y-4">
       <div class="no-print bg-white rounded-2xl shadow-sm border border-slate-200 p-3.5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 class="text-sm sm:text-base font-bold text-slate-800">公式スコアシート プレビュー（A4縦1枚）</h2>
-          <p class="text-xs text-slate-500">1Q/3Qは赤字、2Q/4Qは黒字で自動描画されます。A4縦1枚に綺麗に収まるよう最適化されています。</p>
+          <p class="text-xs text-slate-500">1Q/3Qは赤字、2Q/4Qは黒字で自動描画されます。</p>
         </div>
         <div class="flex gap-2">
           <button onclick="window.print()" class="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold rounded-xl shadow flex items-center gap-1.5">
@@ -610,9 +588,7 @@
 
   </main>
 
-  <!-- =========================================================
-       モーダル0: Gemini APIキー設定モーダル
-  ========================================================= -->
+  <!-- モーダル各種 -->
   <div id="apikey-modal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/65 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -622,16 +598,11 @@
         </div>
         <button onclick="closeApiKeyModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center font-bold">✕</button>
       </div>
-
       <div class="space-y-2 text-xs text-slate-600 leading-relaxed">
         <p>紙のメンバー表を写真から自動読み取り（AI-OCR）するために使用する <strong>Gemini APIキー</strong> を入力してください。</p>
-        <p class="text-[11px] text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-          💡 入力したキーは<strong>お使いのスマホ・PCのブラウザ内（localStorage）にのみ保存</strong>され、GitHub等へ公開されることはありません。
-        </p>
       </div>
-
       <div>
-        <label class="block text-xs font-bold text-slate-700 mb-1">APIキー（AQ. または AIzaSy...）</label>
+        <label class="block text-xs font-bold text-slate-700 mb-1">APIキー</label>
         <div class="relative flex items-center">
           <input type="password" id="apikey-input" placeholder="ここにAPIキーを貼り付け"
             class="w-full pl-3 pr-16 py-2.5 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-orange-500 outline-none" />
@@ -641,26 +612,16 @@
           </button>
         </div>
       </div>
-
       <div class="flex items-center justify-between gap-2 pt-2">
-        <button onclick="clearSavedApiKey()" class="px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50">
-          キーを削除
-        </button>
+        <button onclick="clearSavedApiKey()" class="px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50">キーを削除</button>
         <div class="flex gap-2">
-          <button onclick="closeApiKeyModal()" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">
-            キャンセル
-          </button>
-          <button onclick="saveApiKeyFromModal()" class="px-5 py-2 rounded-xl text-xs font-bold bg-orange-500 text-white hover:bg-orange-600 shadow">
-            保存する
-          </button>
+          <button onclick="closeApiKeyModal()" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">キャンセル</button>
+          <button onclick="saveApiKeyFromModal()" class="px-5 py-2 rounded-xl text-xs font-bold bg-orange-500 text-white hover:bg-orange-600 shadow">保存する</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- =========================================================
-       モーダル1: 出場メンバー選択 / 交代モーダル
-  ========================================================= -->
   <div id="lineup-modal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/65 flex items-end sm:items-center justify-center p-0 sm:p-4">
     <div class="bg-white rounded-t-3xl sm:rounded-2xl max-w-lg w-full max-h-[88vh] flex flex-col shadow-2xl overflow-hidden">
       <div class="px-4 py-3.5 bg-slate-900 text-white flex items-center justify-between">
@@ -670,39 +631,27 @@
         </div>
         <button onclick="closeLineupModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center font-bold">✕</button>
       </div>
-
       <div class="px-4 py-2 bg-slate-100 border-b border-slate-200 flex items-center justify-between gap-2">
-        <span class="text-[11px] text-slate-600">コート上の5人をタップ（交代もここから切替）</span>
+        <span class="text-[11px] text-slate-600">コート上の5人をタップ</span>
         <div class="flex gap-1.5">
-          <button onclick="copyPrevQuarterLineup()" id="lm-copy-prev-btn" class="px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-[11px] font-bold shadow-xs">
-            前のQと同じ5人
-          </button>
-          <button onclick="clearCurrentCourtLineup()" class="px-2 py-1 bg-white hover:bg-red-50 text-red-600 border border-slate-300 rounded-lg text-[11px] font-bold">
-            全解除
-          </button>
+          <button onclick="copyPrevQuarterLineup()" id="lm-copy-prev-btn" class="px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-[11px] font-bold shadow-xs">前のQと同じ5人</button>
+          <button onclick="clearCurrentCourtLineup()" class="px-2 py-1 bg-white hover:bg-red-50 text-red-600 border border-slate-300 rounded-lg text-[11px] font-bold">全解除</button>
         </div>
       </div>
-
       <div class="p-3.5 overflow-y-auto flex-1 grid grid-cols-2 sm:grid-cols-3 gap-2" id="lm-player-grid"></div>
-
       <div class="p-3.5 bg-slate-50 border-t border-slate-200 flex justify-end">
-        <button onclick="closeLineupModal()" class="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-black text-sm rounded-xl shadow">
-          決定して試合画面に戻る
-        </button>
+        <button onclick="closeLineupModal()" class="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-black text-sm rounded-xl shadow">決定して試合画面に戻る</button>
       </div>
     </div>
   </div>
 
-  <!-- =========================================================
-       モーダル2: タイムアウト残り時間（分）クイック入力モーダル
-  ========================================================= -->
   <div id="timeout-modal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-xs w-full p-4 shadow-xl space-y-3">
       <div class="flex items-center justify-between">
         <h3 id="tm-title" class="font-bold text-sm text-slate-900">タイムアウト記録</h3>
         <button onclick="closeTimeoutModal()" class="text-slate-400 hover:text-slate-700 font-bold">✕</button>
       </div>
-      <p class="text-xs text-slate-500">スコアシートに記入する残り時間（分）を選択してください：</p>
+      <p class="text-xs text-slate-500">残り時間（分）を選択：</p>
       <div class="grid grid-cols-4 gap-1.5">
         <button onclick="confirmTimeout('6')" class="py-2 bg-slate-100 hover:bg-orange-500 hover:text-white font-black text-xs rounded-lg border border-slate-200">6分</button>
         <button onclick="confirmTimeout('5')" class="py-2 bg-slate-100 hover:bg-orange-500 hover:text-white font-black text-xs rounded-lg border border-slate-200">5分</button>
@@ -716,30 +665,22 @@
     </div>
   </div>
 
-  <!-- =========================================================
-       モーダル3: 記録履歴・背番号修正モーダル
-  ========================================================= -->
   <div id="history-modal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-lg w-full max-h-[84vh] flex flex-col shadow-xl overflow-hidden">
       <div class="px-4 py-3 bg-slate-900 text-white flex items-center justify-between">
         <div>
-          <h3 class="font-bold text-sm">記録履歴・背番号の修正（最新順）</h3>
-          <p class="text-[10px] text-slate-300">「？ 不明」で記録した得点やファウルもここから正しい背番号に直せます</p>
+          <h3 class="font-bold text-sm">記録履歴・背番号の修正</h3>
         </div>
         <button onclick="closeHistoryModal()" class="text-slate-300 hover:text-white font-bold">✕</button>
       </div>
       <div id="history-modal-list" class="p-3 overflow-y-auto flex-1 space-y-2 text-xs"></div>
       <div class="p-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-        <button onclick="closeHistoryModal(); confirmClearGame();" class="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 font-bold text-xs rounded-xl">
-          試合データを全消去
-        </button>
-        <button onclick="closeHistoryModal()" class="px-4 py-2 bg-slate-800 text-white font-bold text-xs rounded-xl">
-          閉じる
-        </button>
+        <button onclick="closeHistoryModal(); confirmClearGame();" class="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 font-bold text-xs rounded-xl">試合データを全消去</button>
+        <button onclick="closeHistoryModal()" class="px-4 py-2 bg-slate-800 text-white font-bold text-xs rounded-xl">閉じる</button>
       </div>
     </div>
   </div>
-  <!-- 確認モーダル -->
+
   <div id="custom-modal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-xl space-y-4">
       <h3 id="modal-title" class="font-bold text-base text-slate-900">確認</h3>
@@ -750,6 +691,7 @@
       </div>
     </div>
   </div>
+
   <script>
     const API_KEY_STORAGE_NAME = 'minibasket_gemini_api_key_v1';
 
@@ -801,8 +743,7 @@
         btn.textContent = '表示';
       }
     }
-
-    function saveApiKeyFromModal() {
+function saveApiKeyFromModal() {
       const val = document.getElementById('apikey-input').value.trim();
       if (!val) {
         showToast('APIキーを入力してください', 'error');
@@ -856,34 +797,6 @@
       ]
     };
 
-    const SAMPLE_OPPONENT_DATA = {
-      name: "六合東ミニバス",
-      coach: "岩本 謙一",
-      acoach: "鈴木 澪",
-      players: [
-        { grade: "6", name: "鈴木 若菜", number: "1", active: true },
-        { grade: "6", name: "土屋 瑠璃", number: "2", active: true },
-        { grade: "6", name: "井林 俊悟", number: "3", active: true },
-        { grade: "5", name: "福澤 瞬", number: "4", active: true },
-        { grade: "5", name: "安野 綺未", number: "5", active: true },
-        { grade: "4", name: "大畑 陽", number: "6", active: true },
-        { grade: "4", name: "内藤 美恋", number: "7", active: true },
-        { grade: "4", name: "山崎 瑞子", number: "8", active: true },
-        { grade: "4", name: "井林 咲希", number: "9", active: true },
-        { grade: "3", name: "乗金 海財", number: "10", active: true },
-        { grade: "3", name: "伴場 旭輝", number: "11", active: true },
-        { grade: "3", name: "北川 薫", number: "12", active: true },
-        { grade: "3", name: "山崎 優夏", number: "13", active: true },
-        { grade: "3", name: "杉村 佳那乃", number: "14", active: true },
-        { grade: "2", name: "乗金 希咲", number: "15", active: true },
-        { grade: "2", name: "高木 玲夢", number: "16", active: true },
-        { grade: "2", name: "内藤 麗乃", number: "17", active: true },
-        { grade: "2", name: "福澤 よつは", number: "18", active: true },
-        { grade: "2", name: "杉岡 悠希奈", number: "19", active: true },
-        { grade: "1", name: "井林 彩帆", number: "20", active: true }
-      ]
-    };
-
     let state = {
       activeTab: 'setup',
       hanashiColor: 'white',
@@ -894,7 +807,12 @@
         time: ''
       },
       hanashi: JSON.parse(JSON.stringify(INITIAL_HANASHI_DATA)),
-      opponent: JSON.parse(JSON.stringify(SAMPLE_OPPONENT_DATA)),
+      opponent: {
+        name: "",
+        coach: "",
+        acoach: "",
+        players: []
+      },
       currentQuarter: 1,
       inputMode: { type: 'score2', value: 2 },
       onCourt: {
@@ -1033,6 +951,7 @@
       state.opponent.name = document.getElementById('opponent-name').value;
       saveToLocalStorage();
     }
+
     function togglePlayerRosterActive(target, idx) {
       const p = state[target].players[idx];
       if (!p) return;
@@ -1121,18 +1040,7 @@
         showToast('葉梨マスタを初期値に戻しました', 'success');
       });
     }
-
-    function loadSampleOpponent() {
-      state.opponent = JSON.parse(JSON.stringify(SAMPLE_OPPONENT_DATA));
-      document.getElementById('opponent-name').value = state.opponent.name;
-      document.getElementById('opponent-coach').value = state.opponent.coach;
-      document.getElementById('opponent-acoach').value = state.opponent.acoach;
-      saveToLocalStorage();
-      renderSetupTab();
-      showToast('サンプル相手チーム（六合東ミニバス）を読み込みました', 'success');
-    }
-
-    function resizeImageToBase64(file, maxWidth = 1400) {
+function resizeImageToBase64(file, maxWidth = 1400) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -1307,7 +1215,8 @@
         oBadge.className = 'px-2 py-0.5 text-xs font-bold rounded bg-slate-100 text-slate-800 border border-slate-300';
         oBadge.textContent = '白（上段）';
       }
-const hList = document.getElementById('hanashi-player-list');
+
+      const hList = document.getElementById('hanashi-player-list');
       hList.innerHTML = state.hanashi.players.map((p, idx) => {
         const isActive = p.active !== false;
         return `
@@ -1326,7 +1235,7 @@ const hList = document.getElementById('hanashi-player-list');
 
       const oList = document.getElementById('opponent-player-list');
       if (state.opponent.players.length === 0) {
-        oList.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">上の「写真を選択 / 撮影」または手動で選手を登録してください</p>`;
+        oList.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">上の「写真を選択 / 撮影」または手動・一括登録で選手を追加してください</p>`;
       } else {
         oList.innerHTML = state.opponent.players.map((p, idx) => {
           const isActive = p.active !== false;
@@ -1368,7 +1277,7 @@ const hList = document.getElementById('hanashi-player-list');
     }
 
     function handlePlayerTap(side, number, name) {
-      const teamName = getTeamBySide(side).name;
+      const teamName = getTeamBySide(side).name || '対戦相手';
       const mode = state.inputMode;
       const isHanashi = isHanashiSide(side);
       const dispLabel = isHanashi && number !== '?' ? `#${number} ${name}` : `#${number}`;
@@ -1424,8 +1333,7 @@ const hList = document.getElementById('hanashi-player-list');
         const newCount = number !== '?'
           ? state.events.filter(e => e.type === 'foul' && e.side === side && e.number === number).length
           : 0;
-
-        resetInputMode(false);
+resetInputMode(false);
         saveToLocalStorage();
         renderGameTab();
 
@@ -1508,7 +1416,7 @@ const hList = document.getElementById('hanashi-player-list');
       const benchPlayers = team.players.filter(p => p.active !== false);
 
       document.getElementById('lm-subtitle').textContent = `${q === 5 ? 'OT' : q + 'Q'} 出場メンバー設定・交代`;
-      document.getElementById('lm-title').textContent = `${side === 'white' ? '白' : '青'}：${team.name}（${courtArr.length} / 5人選択中）`;
+      document.getElementById('lm-title').textContent = `${side === 'white' ? '白' : '青'}：${team.name || 'チーム'}（${courtArr.length} / 5人選択中）`;
 
       const prevBtn = document.getElementById('lm-copy-prev-btn');
       if (q > 1 && state.onCourt[side][q - 1].length > 0) {
@@ -1518,6 +1426,11 @@ const hList = document.getElementById('hanashi-player-list');
       }
 
       const grid = document.getElementById('lm-player-grid');
+      if (benchPlayers.length === 0) {
+        grid.innerHTML = `<p class="col-span-3 text-xs text-slate-400 text-center py-6">登録されている選手がいません。「1. チーム・読取」タブから選手を追加してください。</p>`;
+        return;
+      }
+
       grid.innerHTML = benchPlayers.map(p => {
         const isOn = courtArr.includes(p.number);
         const fouls = state.events.filter(e => e.type === 'foul' && e.side === side && e.number === p.number).length;
@@ -1551,17 +1464,18 @@ const hList = document.getElementById('hanashi-player-list');
     function openTimeoutModal(side) {
       activeTimeoutModalSide = side;
       const team = getTeamBySide(side);
-      document.getElementById('tm-title').textContent = `${side === 'white' ? '白' : '青'}：${team.name} タイムアウト`;
+      document.getElementById('tm-title').textContent = `${side === 'white' ? '白' : '青'}：${team.name || 'チーム'} タイムアウト`;
       document.getElementById('timeout-modal').classList.remove('hidden');
     }
 
     function closeTimeoutModal() {
       document.getElementById('timeout-modal').classList.add('hidden');
     }
+
     function confirmTimeout(minuteLabel) {
       const side = activeTimeoutModalSide;
       const q = state.currentQuarter;
-      const teamName = getTeamBySide(side).name;
+      const teamName = getTeamBySide(side).name || 'チーム';
       state.events.push({
         id: Date.now() + Math.random(),
         type: 'timeout',
@@ -1633,7 +1547,7 @@ const hList = document.getElementById('hanashi-player-list');
               <div class="flex items-center gap-1.5">
                 <span class="${qColor}">[${qLabel}]</span>
                 ${sideBadge}
-                <span class="font-bold text-slate-700">${team.name}</span>
+                <span class="font-bold text-slate-700">${team.name || 'チーム'}</span>
                 <span class="text-purple-700 font-black">タイムアウト(${ev.minuteLabel || '○'})</span>
               </div>
               <button onclick="deleteSingleEvent(${ev.id})" class="text-slate-400 hover:text-red-600 font-bold px-1.5">削除</button>
@@ -1680,7 +1594,6 @@ const hList = document.getElementById('hanashi-player-list');
       renderGameTab();
       showToast('直前の記録を1つ取り消しました', 'info');
     }
-
     function confirmClearGame() {
       openConfirmModal('試合データのリセット', '現在の得点・ファウル・出場メンバーの記録をすべて消去しますか？', () => {
         state.events = [];
@@ -1771,8 +1684,8 @@ const hList = document.getElementById('hanashi-player-list');
         document.getElementById(`mode-btn-${mode.value}`)?.classList.add('ring-4', 'ring-slate-900', 'scale-105');
       }
 
-      document.getElementById('sb-white-name').textContent = whiteTeam.name;
-      document.getElementById('sb-blue-name').textContent = blueTeam.name;
+      document.getElementById('sb-white-name').textContent = whiteTeam.name || '白チーム';
+      document.getElementById('sb-blue-name').textContent = blueTeam.name || '青チーム';
       document.getElementById('sb-white-score').textContent = scores.white.total;
       document.getElementById('sb-blue-score').textContent = scores.blue.total;
 
@@ -1788,8 +1701,8 @@ const hList = document.getElementById('hanashi-player-list');
         <span>${scores.white.q[q]}-${scores.blue.q[q]}</span>
       `;
 
-      document.getElementById('court-white-title').textContent = `白：${whiteTeam.name}`;
-      document.getElementById('court-blue-title').textContent = `青：${blueTeam.name}`;
+      document.getElementById('court-white-title').textContent = `白：${whiteTeam.name || '白チーム'}`;
+      document.getElementById('court-blue-title').textContent = `青：${blueTeam.name || '青チーム'}`;
 
       ['white', 'blue'].forEach(side => {
         const team = side === 'white' ? whiteTeam : blueTeam;
@@ -1827,7 +1740,8 @@ const hList = document.getElementById('hanashi-player-list');
             </div>
           `;
           return;
-    }
+        }
+
         container.innerHTML = `
           <div class="grid grid-cols-6 gap-1">
             ${activePlayers.map(p => {
@@ -1963,13 +1877,12 @@ const hList = document.getElementById('hanashi-player-list');
         }
 
         const borderColorCls = side === 'white' ? 'border-slate-900' : 'border-red-700';
-
-        return `
+return `
           <div class="border-2 ${borderColorCls} p-1 bg-white">
             <div class="flex items-center justify-between mb-0.5">
               <div class="flex items-baseline gap-1.5 pl-1">
                 <span class="text-[8.5px] font-bold">チーム:</span>
-                <span class="text-sm font-black tracking-wide">${team.name}</span>
+                <span class="text-sm font-black tracking-wide">${team.name || ''}</span>
                 <span class="text-[10px] font-bold">（ ${colorLabel} ）</span>
               </div>
               <table class="border-collapse border border-slate-900 text-center" style="width: 105px;">
@@ -2078,12 +1991,6 @@ const hList = document.getElementById('hanashi-player-list');
           { start: 41, end: 80 },
           { start: 81, end: 120 }
         ];
-        const buildRunningScoreColumns = () => {
-        const ranges = [
-          { start: 1, end: 40 },
-          { start: 41, end: 80 },
-          { start: 81, end: 120 }
-        ];
 
         return ranges.map(range => {
           let rows = '';
@@ -2168,7 +2075,7 @@ const hList = document.getElementById('hanashi-player-list');
             <div class="flex-1 p-1 flex items-center justify-between gap-1">
               <div class="text-[8.5px] font-bold leading-tight">スコア</div>
               <div class="flex flex-col items-center">
-                <span class="text-[8.5px] font-bold truncate max-w-[65px]">${whiteTeam.name}</span>
+                <span class="text-[8.5px] font-bold truncate max-w-[65px]">${whiteTeam.name || '白'}</span>
                 <div class="w-12 h-8 border-2 border-slate-900 flex items-center justify-center text-lg font-black">
                   ${scores.white.total}
                 </div>
@@ -2181,7 +2088,7 @@ const hList = document.getElementById('hanashi-player-list');
                 <div class="text-[7.5px] text-center text-slate-500">（延長 ${scores.white.q[5]}-${scores.blue.q[5]}）</div>
               </div>
               <div class="flex flex-col items-center">
-                <span class="text-[8.5px] font-bold truncate max-w-[65px]">${blueTeam.name}</span>
+                <span class="text-[8.5px] font-bold truncate max-w-[65px]">${blueTeam.name || '青'}</span>
                 <div class="w-12 h-8 border-2 border-slate-900 flex items-center justify-center text-lg font-black">
                   ${scores.blue.total}
                 </div>
@@ -2239,8 +2146,7 @@ const hList = document.getElementById('hanashi-player-list');
               </div>
             </div>
           </div>
-
-          <div class="col-span-5 border-2 border-slate-900 p-1 bg-white flex flex-col">
+    <div class="col-span-5 border-2 border-slate-900 p-1 bg-white flex flex-col">
             <div class="text-center font-bold text-[9px] pb-0.5 border-b border-slate-900 mb-0.5">
               ランニング スコア <span class="tracking-wider">RUNNING SCORE</span>
             </div>
