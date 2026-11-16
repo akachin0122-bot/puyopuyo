@@ -1071,6 +1071,19 @@ function openConfirmModal(title, message, onConfirm) {
       showToast(`#${num} ${name} を追加しました`, 'success');
     }
     
+    
+
+      state.opponent.players.sort((a, b) => Number(a.number) - Number(b.number));
+      saveToLocalStorage();
+      renderSetupTab();
+
+      document.getElementById('bulk-text-input').value = '';
+      if (addedCount > 0) {
+        showToast(`${addedCount}名の選手をまとめて登録しました！`, 'success');
+      } else {
+        showToast('選手を読み込めませんでした。書式を確認してください', 'error');
+      }
+    }
     function importPlayersFromText() {
       const text = document.getElementById('bulk-text-input').value;
       if (!text.trim()) {
@@ -1082,7 +1095,7 @@ function openConfirmModal(title, message, onConfirm) {
       let addedCount = 0;
 
       lines.forEach(line => {
-        // #1森田蒼大(5年) のような形式を確実にキャッチする正規表現
+        // #1森田蒼大(5年) などの形式をキャッチする正規表現
         const match = line.match(/#?(\d+)[\s:：、,]*([^\d(（]+)[(（]([1-6])年?[)）]/);
         if (match) {
           const num = match[1];
