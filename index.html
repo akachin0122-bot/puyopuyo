@@ -254,7 +254,8 @@
             </button>
           </div>
         </div>
-    <!-- 試合メタデータ入力 -->
+
+        <!-- 試合メタデータ入力 -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3.5">
           <div>
             <label class="block text-xs font-bold text-slate-600 mb-1">大会名</label>
@@ -278,7 +279,6 @@
           </div>
         </div>
       </div>
-
       <!-- 2カラム：自チーム（葉梨マスタ） & 相手チーム（カメラ・写真一覧OCR） -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
@@ -524,6 +524,7 @@
           <div id="court-blue-players" class="my-auto py-1"></div>
         </div>
       </div>
+
       <div id="action-bar-container" class="bg-white rounded-2xl shadow-md border-2 border-slate-300 p-2.5 sticky bottom-2 z-30 transition-all">
         <div class="flex items-center justify-between gap-2 mb-2">
           <div id="input-mode-banner" class="flex items-center gap-1.5 text-xs font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 flex-1">
@@ -536,8 +537,7 @@
             1Q：赤ペン
           </span>
         </div>
-
-        <div class="grid grid-cols-6 gap-1.5">
+     <div class="grid grid-cols-6 gap-1.5">
           <button onclick="setInputMode('ft', 1)" id="mode-btn-ft"
             class="py-2 bg-sky-600 hover:bg-sky-700 active:scale-95 text-white rounded-xl font-black text-xs shadow-sm leading-tight transition">
             +1点<br><span class="text-[9px] font-normal">FT(1本)</span>
@@ -744,7 +744,8 @@
         btn.textContent = '表示';
       }
     }
-function saveApiKeyFromModal() {
+
+    function saveApiKeyFromModal() {
       const val = document.getElementById('apikey-input').value.trim();
       if (!val) {
         showToast('APIキーを入力してください', 'error');
@@ -826,13 +827,14 @@ function saveApiKeyFromModal() {
       },
       events: []
     };
-
-    let activeLineupModalSide = 'white';
+let activeLineupModalSide = 'white';
     let activeTimeoutModalSide = 'white';
 
     window.addEventListener('DOMContentLoaded', () => {
       document.getElementById('meta-date').value = state.meta.date;
       loadFromLocalStorage();
+      // 初回起動時などに葉梨マスタを明示ソート
+      sortTeamPlayers('hanashi');
       updateApiKeyStatusUI();
       renderAll();
     });
@@ -960,7 +962,8 @@ function saveApiKeyFromModal() {
       saveToLocalStorage();
       renderSetupTab();
     }
-function addPlayer(target) {
+
+    function addPlayer(target) {
       const numEl = document.getElementById(`${target}-add-num`);
       const gradeEl = document.getElementById(`${target}-add-grade`);
       const nameEl = document.getElementById(`${target}-add-name`);
@@ -1011,37 +1014,24 @@ function addPlayer(target) {
         const trimmed = line.trim();
         if (!trimmed) return;
 
-        // チーム名抽出 (例: "チーム：掛川城北バスケットボールクラブ" または "掛川城北バスケットボールクラブ")
+        // 1. チーム名抽出
         const teamMatch = trimmed.match(/(?:チーム|チーム名)[\s:：]*([^\s(（]+)/);
-        if (teamMatch && !trimmed.includes('#') && !trimmed.includes('コーチ')) {
+        if (teamMatch && !trimmed.includes('#') && !trimmed.includes('コーチ') && !trimmed.includes('監督')) {
           const tName = trimmed.replace(/(?:チーム|チーム名)[\s:：]*/, '').trim();
           if (tName) {
             state.opponent.name = tName;
             document.getElementById('opponent-name').value = tName;
           }
           return;
-        } else if (!trimmed.includes('#') && !trimmed.includes('コーチ') && !trimmed.includes('年') && trimmed.length > 2 && !state.opponent.name) {
-          // シンプルにチーム名だけの行の場合
+        } else if (!trimmed.includes('#') && !trimmed.includes('コーチ') && !trimmed.includes('監督') && !trimmed.includes('年') && trimmed.length > 2 && !state.opponent.name) {
           state.opponent.name = trimmed;
           document.getElementById('opponent-name').value = trimmed;
           return;
         }
 
-        // コーチ抽出
-        const coachMatch = trimmed.match(/(?:コーチ|監督)[\s:：]*([^\s(（]+)/);
-        if (coachMatch) {
-          const cName = trimmed.replace(/(?:コーチ|監督)[\s:：]*/, '').trim();
-          if (cName) {
-            state.opponent.coach = cName;
-            document.getElementById('opponent-coach').value = cName;
-          }
-          return;
-        }
-
-        // A.コーチ抽出
-        const acoachMatch = trimmed.match(/(?:A\.?コーチ|副コーチ|アシスタント)[\s:：]*([^\s(（]+)/);
-        if (acoachMatch) {
-          const acName = trimmed.replace(/(?:A\.?コーチ|副コーチ|アシスタント)[\s:：]*/, '').trim();
+        // 2. A.コーチ抽出（※「コーチ」より先に判定することで、Aコーチがコーチに吸い込まれるのを防ぐ）
+        if (/^(?:A\.?コーチ|副コーチ|アシスタント)/.test(trimmed)) {
+          const acName = trimmed.replace(/^(?:A\.?コーチ|副コーチ|アシスタント)[\s:：]*/, '').trim();
           if (acName) {
             state.opponent.acoach = acName;
             document.getElementById('opponent-acoach').value = acName;
@@ -1049,7 +1039,17 @@ function addPlayer(target) {
           return;
         }
 
-        // 選手情報抽出 (例: #1森田蒼大(5年) または 1 森田 蒼大 5年)
+        // 3. コーチ抽出（Aコーチではない通常の「コーチ」や「監督」）
+        if (/^(?:コーチ|監督)/.test(trimmed)) {
+          const cName = trimmed.replace(/^(?:コーチ|監督)[\s:：]*/, '').trim();
+          if (cName) {
+            state.opponent.coach = cName;
+            document.getElementById('opponent-coach').value = cName;
+          }
+          return;
+        }
+
+        // 4. 選手情報抽出 (例: #1森田蒼大(5年))
         const playerMatch = trimmed.match(/#?(\d+)[\s:：、,]*([^\d(（\s]+[\s]?[^\d(（\s]*)[(（]?([1-6])年?[)）]?/);
         if (playerMatch) {
           const num = playerMatch[1];
@@ -1145,7 +1145,7 @@ function addPlayer(target) {
 - assistantCoach: アシスタントコーチ名（文字列。複数いる場合は読点「、」で繋ぐ）
 - players: 選手の配列。各要素は { "grade": "学年(数字のみ)", "name": "選手氏名", "number": "背番号(数字のみ)" }。`;
 
-        const payload = {
+    const payload = {
           contents: [
             {
               role: "user",
@@ -1231,7 +1231,8 @@ function addPlayer(target) {
               active: true
             }));
         }
-sortTeamPlayers('opponent');
+
+        sortTeamPlayers('opponent');
         saveToLocalStorage();
         renderSetupTab();
         showToast(`${state.opponent.players.length}名の選手を読み取りました！`, 'success');
@@ -1364,7 +1365,7 @@ sortTeamPlayers('opponent');
         if (number !== '?') {
           const existingFouls = state.events.filter(e => e.type === 'foul' && e.side === side && e.number === number).length;
           if (existingFouls >= 5) {
-            showToast(`${dispLabel} は既に5ファウル（退場）です`, 'error');
+            showToast(`${dispLabel} は既に55ファウル（退場）です`, 'error');
             resetInputMode();
             return;
           }
@@ -1394,8 +1395,7 @@ sortTeamPlayers('opponent');
           showToast(`${teamName} ${dispLabel} ファウル(${foulType}) [計${newCount}回]`, newCount >= 5 ? 'error' : 'info');
         }
       }
-    }
-
+             }
     function openLineupModal(side) {
       activeLineupModalSide = side;
       renderLineupModal();
@@ -1481,7 +1481,8 @@ sortTeamPlayers('opponent');
         grid.innerHTML = `<p class="col-span-3 text-xs text-slate-400 text-center py-6">登録されている選手がいません。「1. チーム・読取」タブから選手を追加してください。</p>`;
         return;
       }
-grid.innerHTML = benchPlayers.map(p => {
+
+      grid.innerHTML = benchPlayers.map(p => {
         const isOn = courtArr.includes(p.number);
         const fouls = state.events.filter(e => e.type === 'foul' && e.side === side && e.number === p.number).length;
         const playedQs = [1, 2, 3, 4].filter(qn => state.participation[side][qn][p.number]);
@@ -1632,8 +1633,7 @@ grid.innerHTML = benchPlayers.map(p => {
           </div>
         `;
       }).join('');
-    }
-
+      }
     function undoLastAction() {
       if (state.events.length === 0) {
         showToast('取り消す操作がありません', 'error');
@@ -1734,7 +1734,8 @@ grid.innerHTML = benchPlayers.map(p => {
         cancelBtn.classList.remove('hidden');
         document.getElementById(`mode-btn-${mode.value}`)?.classList.add('ring-4', 'ring-slate-900', 'scale-105');
       }
-document.getElementById('sb-white-name').textContent = whiteTeam.name || '白チーム';
+
+      document.getElementById('sb-white-name').textContent = whiteTeam.name || '白チーム';
       document.getElementById('sb-blue-name').textContent = blueTeam.name || '青チーム';
       document.getElementById('sb-white-score').textContent = scores.white.total;
       document.getElementById('sb-blue-score').textContent = scores.blue.total;
@@ -1763,8 +1764,7 @@ document.getElementById('sb-white-name').textContent = whiteTeam.name || '白チ
         const container = document.getElementById(`court-${side}-players`);
         const activePlayers = activeNums
           .map(num => team.players.find(p => p.number === num))
-          .filter(Boolean)
-          .sort((a, b) => Number(a.number) - Number(b.number));
+          .filter(Boolean);
 
         let modeRingClass = '';
         if (mode.type === 'foul') modeRingClass = 'ring-2 ring-orange-400';
@@ -1878,7 +1878,15 @@ document.getElementById('sb-white-name').textContent = whiteTeam.name || '白チ
           return `<span class="${colorCls} font-bold">${toEvs.map(e => e.minuteLabel || '○').join(',')}</span>`;
         });
 
-        const benchPlayers = team.players.filter(p => p.active !== false);
+        // スコアシート出力時、確実に学年順（6年→1年、同学年は背番号順）にソートして描画
+        const benchPlayers = team.players
+          .filter(p => p.active !== false)
+          .sort((a, b) => {
+            const gA = Number(a.grade) || 0;
+            const gB = Number(b.grade) || 0;
+            if (gA !== gB) return gB - gA;
+            return Number(a.number) - Number(b.number);
+          });
 
         let rowsHTML = '';
         for (let i = 0; i < 22; i++) {
@@ -1925,8 +1933,7 @@ document.getElementById('sb-white-name').textContent = whiteTeam.name || '白チ
             </tr>
           `;
         }
-
-        const borderColorCls = side === 'white' ? 'border-slate-900' : 'border-red-700';
+const borderColorCls = side === 'white' ? 'border-slate-900' : 'border-red-700';
 
         return `
           <div class="border-2 ${borderColorCls} p-1 bg-white">
@@ -1997,7 +2004,8 @@ document.getElementById('sb-white-name').textContent = whiteTeam.name || '白チ
           </div>
         `;
       };
-const buildTeamFoulHTML = (side) => {
+
+      const buildTeamFoulHTML = (side) => {
         const tf = scores[side].tf;
         const makeBox = (q1, q2) => {
           let rows = '';
@@ -2175,7 +2183,6 @@ const buildTeamFoulHTML = (side) => {
             </div>
           </div>
         </div>
-
         <div class="grid grid-cols-12 gap-1.5 flex-1">
           <div class="col-span-7 flex flex-col justify-between gap-1">
             <div class="grid grid-cols-12 gap-1">
