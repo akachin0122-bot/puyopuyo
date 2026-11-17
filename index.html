@@ -208,7 +208,8 @@
           3. スコア表出力
         </button>
       </nav>
-   <!-- APIキー設定ボタン -->
+
+      <!-- APIキー設定ボタン -->
       <button onclick="openApiKeyModal()" id="header-apikey-btn"
         class="px-2.5 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-1 shrink-0 bg-slate-800 border-slate-600 text-slate-200 hover:bg-slate-700"
         title="Gemini APIキーの設定">
@@ -253,8 +254,7 @@
             </button>
           </div>
         </div>
-
-        <!-- 試合メタデータ入力 -->
+    <!-- 試合メタデータ入力 -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3.5">
           <div>
             <label class="block text-xs font-bold text-slate-600 mb-1">大会名</label>
@@ -333,7 +333,7 @@
                 <span id="opponent-badge" class="px-2 py-0.5 text-xs font-bold rounded bg-blue-600 text-white">青（下段）</span>
                 <h3 class="font-bold text-sm sm:text-base text-slate-800">相手チーム登録</h3>
               </div>
-              <p class="text-[11px] text-slate-500 mt-0.5">紙のメンバー表をカメラ撮影 or 写真一覧から自動読取</p>
+              <p class="text-[11px] text-slate-500 mt-0.5">紙のメンバー表をカメラ撮影 or テキスト一括貼り付け</p>
             </div>
           </div>
 
@@ -403,17 +403,17 @@
             </button>
           </div>
 
-          <!-- ▼ テキスト一括登録エリア -->
+          <!-- ▼ テキスト一括登録エリア（チーム名・コーチ等も自動読取対応） -->
           <div class="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-            <p class="text-xs font-bold text-slate-700">📝 テキストからまとめて一括登録</p>
-            <textarea id="bulk-text-input" rows="3" placeholder="ここに選手リストを貼り付け&#10;例: #1：太田 葵 (6年) または 1 太田 葵" class="w-full p-2 text-xs border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-orange-500"></textarea>
+            <p class="text-xs font-bold text-slate-700">📝 テキストからまとめて一括登録（チーム名・コーチも自動反映）</p>
+            <textarea id="bulk-text-input" rows="4" placeholder="ここにメンバー表テキストを貼り付け&#10;例：&#10;チーム：掛川城北バスケットボールクラブ&#10;#1 森田 蒼大 (5年)&#10;コーチ：山崎公美子" class="w-full p-2 text-xs border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-orange-500"></textarea>
             <button onclick="importPlayersFromText()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg shadow-sm">
-              このテキストから選手をまとめて追加
+              テキストからチーム・選手をまとめて一括設定
             </button>
           </div>
 
           <!-- 相手選手一覧 -->
-          <div class="mt-3 max-h-[260px] overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100" id="opponent-player-list"></div>
+          <div class="mt-3 max-h-[220px] overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100" id="opponent-player-list"></div>
         </div>
       </div>
 
@@ -427,7 +427,9 @@
         </button>
       </div>
     </section>
-<!-- =========================================================
+
+
+    <!-- =========================================================
          TAB 2: 試合入力画面
     ========================================================= -->
     <section id="tab-game" class="hidden flex-1 flex flex-col justify-between gap-2">
@@ -522,7 +524,6 @@
           <div id="court-blue-players" class="my-auto py-1"></div>
         </div>
       </div>
-
       <div id="action-bar-container" class="bg-white rounded-2xl shadow-md border-2 border-slate-300 p-2.5 sticky bottom-2 z-30 transition-all">
         <div class="flex items-center justify-between gap-2 mb-2">
           <div id="input-mode-banner" class="flex items-center gap-1.5 text-xs font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 flex-1">
@@ -838,13 +839,13 @@ function saveApiKeyFromModal() {
 
     function saveToLocalStorage() {
       try {
-        localStorage.setItem('minibasket_score_state_v5', JSON.stringify(state));
+        localStorage.setItem('minibasket_score_state_v6', JSON.stringify(state));
       } catch (e) {}
     }
 
     function loadFromLocalStorage() {
       try {
-        const saved = localStorage.getItem('minibasket_score_state_v5');
+        const saved = localStorage.getItem('minibasket_score_state_v6');
         if (saved) {
           const parsed = JSON.parse(saved);
           state = { ...state, ...parsed };
@@ -959,8 +960,7 @@ function saveApiKeyFromModal() {
       saveToLocalStorage();
       renderSetupTab();
     }
-
-    function addPlayer(target) {
+function addPlayer(target) {
       const numEl = document.getElementById(`${target}-add-num`);
       const gradeEl = document.getElementById(`${target}-add-grade`);
       const nameEl = document.getElementById(`${target}-add-name`);
@@ -978,7 +978,7 @@ function saveApiKeyFromModal() {
         return;
       }
       team.players.push({ number: num, grade: grade || '', name, active: true });
-      team.players.sort((a, b) => Number(a.number) - Number(b.number));
+      sortTeamPlayers(target);
 
       numEl.value = '';
       gradeEl.value = '';
@@ -986,6 +986,15 @@ function saveApiKeyFromModal() {
       saveToLocalStorage();
       renderSetupTab();
       showToast(`#${num} ${name} を追加しました`, 'success');
+    }
+
+    function sortTeamPlayers(target) {
+      state[target].players.sort((a, b) => {
+        const gA = Number(a.grade) || 0;
+        const gB = Number(b.grade) || 0;
+        if (gA !== gB) return gB - gA; // 学年降順 (6年 -> 1年)
+        return Number(a.number) - Number(b.number); // 背番号昇順
+      });
     }
 
     function importPlayersFromText() {
@@ -999,11 +1008,53 @@ function saveApiKeyFromModal() {
       let addedCount = 0;
 
       lines.forEach(line => {
-        const match = line.match(/#?(\d+)[\s:：、,]*([^\d(（]+)[(（]([1-6])年?[)）]/);
-        if (match) {
-          const num = match[1];
-          const name = match[2].trim();
-          const grade = match[3];
+        const trimmed = line.trim();
+        if (!trimmed) return;
+
+        // チーム名抽出 (例: "チーム：掛川城北バスケットボールクラブ" または "掛川城北バスケットボールクラブ")
+        const teamMatch = trimmed.match(/(?:チーム|チーム名)[\s:：]*([^\s(（]+)/);
+        if (teamMatch && !trimmed.includes('#') && !trimmed.includes('コーチ')) {
+          const tName = trimmed.replace(/(?:チーム|チーム名)[\s:：]*/, '').trim();
+          if (tName) {
+            state.opponent.name = tName;
+            document.getElementById('opponent-name').value = tName;
+          }
+          return;
+        } else if (!trimmed.includes('#') && !trimmed.includes('コーチ') && !trimmed.includes('年') && trimmed.length > 2 && !state.opponent.name) {
+          // シンプルにチーム名だけの行の場合
+          state.opponent.name = trimmed;
+          document.getElementById('opponent-name').value = trimmed;
+          return;
+        }
+
+        // コーチ抽出
+        const coachMatch = trimmed.match(/(?:コーチ|監督)[\s:：]*([^\s(（]+)/);
+        if (coachMatch) {
+          const cName = trimmed.replace(/(?:コーチ|監督)[\s:：]*/, '').trim();
+          if (cName) {
+            state.opponent.coach = cName;
+            document.getElementById('opponent-coach').value = cName;
+          }
+          return;
+        }
+
+        // A.コーチ抽出
+        const acoachMatch = trimmed.match(/(?:A\.?コーチ|副コーチ|アシスタント)[\s:：]*([^\s(（]+)/);
+        if (acoachMatch) {
+          const acName = trimmed.replace(/(?:A\.?コーチ|副コーチ|アシスタント)[\s:：]*/, '').trim();
+          if (acName) {
+            state.opponent.acoach = acName;
+            document.getElementById('opponent-acoach').value = acName;
+          }
+          return;
+        }
+
+        // 選手情報抽出 (例: #1森田蒼大(5年) または 1 森田 蒼大 5年)
+        const playerMatch = trimmed.match(/#?(\d+)[\s:：、,]*([^\d(（\s]+[\s]?[^\d(（\s]*)[(（]?([1-6])年?[)）]?/);
+        if (playerMatch) {
+          const num = playerMatch[1];
+          const name = playerMatch[2].trim();
+          const grade = playerMatch[3];
 
           if (!state.opponent.players.some(p => p.number === num)) {
             state.opponent.players.push({ number: num, grade, name, active: true });
@@ -1012,15 +1063,15 @@ function saveApiKeyFromModal() {
         }
       });
 
-      state.opponent.players.sort((a, b) => Number(a.number) - Number(b.number));
+      sortTeamPlayers('opponent');
       saveToLocalStorage();
       renderSetupTab();
 
       document.getElementById('bulk-text-input').value = '';
-      if (addedCount > 0) {
-        showToast(`${addedCount}名の選手をまとめて登録しました！`, 'success');
+      if (addedCount > 0 || state.opponent.name) {
+        showToast(`チーム名・${addedCount}名の選手を一括設定しました！`, 'success');
       } else {
-        showToast('選手を読み込めませんでした。書式を確認してください', 'error');
+        showToast('情報を読み込めませんでした。書式を確認してください', 'error');
       }
     }
 
@@ -1033,6 +1084,7 @@ function saveApiKeyFromModal() {
     function resetHanashiMaster() {
       openConfirmModal('葉梨マスタのリセット', '葉梨のメンバー・コーチを初期登録データに戻しますか？', () => {
         state.hanashi = JSON.parse(JSON.stringify(INITIAL_HANASHI_DATA));
+        sortTeamPlayers('hanashi');
         document.getElementById('hanashi-coach').value = state.hanashi.coach;
         document.getElementById('hanashi-acoach').value = state.hanashi.acoach;
         saveToLocalStorage();
@@ -1040,7 +1092,8 @@ function saveApiKeyFromModal() {
         showToast('葉梨マスタを初期値に戻しました', 'success');
       });
     }
-function resizeImageToBase64(file, maxWidth = 1400) {
+
+    function resizeImageToBase64(file, maxWidth = 1400) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -1090,10 +1143,7 @@ function resizeImageToBase64(file, maxWidth = 1400) {
 - teamName: チーム名（文字列。不明なら空文字）
 - coach: コーチ名（文字列。不明なら空文字）
 - assistantCoach: アシスタントコーチ名（文字列。複数いる場合は読点「、」で繋ぐ）
-- players: 選手の配列。各要素は { "grade": "学年(数字のみ)", "name": "選手氏名", "number": "背番号(数字のみ)" }。
-注意:
-・背番号や学年が読み取れない場合は推測せず空文字にしてください。
-・氏名にふりがなが振ってある場合は漢字の氏名のみ抽出してください。`;
+- players: 選手の配列。各要素は { "grade": "学年(数字のみ)", "name": "選手氏名", "number": "背番号(数字のみ)" }。`;
 
         const payload = {
           contents: [
@@ -1181,7 +1231,7 @@ function resizeImageToBase64(file, maxWidth = 1400) {
               active: true
             }));
         }
-
+sortTeamPlayers('opponent');
         saveToLocalStorage();
         renderSetupTab();
         showToast(`${state.opponent.players.length}名の選手を読み取りました！`, 'success');
@@ -1235,7 +1285,7 @@ function resizeImageToBase64(file, maxWidth = 1400) {
 
       const oList = document.getElementById('opponent-player-list');
       if (state.opponent.players.length === 0) {
-        oList.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">上の「写真を選択 / 撮影」または手動・一括登録で選手を追加してください</p>`;
+        oList.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">上の写真読取またはテキスト一括登録で選手を追加してください</p>`;
       } else {
         oList.innerHTML = state.opponent.players.map((p, idx) => {
           const isActive = p.active !== false;
@@ -1333,7 +1383,8 @@ function resizeImageToBase64(file, maxWidth = 1400) {
         const newCount = number !== '?'
           ? state.events.filter(e => e.type === 'foul' && e.side === side && e.number === number).length
           : 0;
-resetInputMode(false);
+
+        resetInputMode(false);
         saveToLocalStorage();
         renderGameTab();
 
@@ -1430,8 +1481,7 @@ resetInputMode(false);
         grid.innerHTML = `<p class="col-span-3 text-xs text-slate-400 text-center py-6">登録されている選手がいません。「1. チーム・読取」タブから選手を追加してください。</p>`;
         return;
       }
-
-      grid.innerHTML = benchPlayers.map(p => {
+grid.innerHTML = benchPlayers.map(p => {
         const isOn = courtArr.includes(p.number);
         const fouls = state.events.filter(e => e.type === 'foul' && e.side === side && e.number === p.number).length;
         const playedQs = [1, 2, 3, 4].filter(qn => state.participation[side][qn][p.number]);
@@ -1594,6 +1644,7 @@ resetInputMode(false);
       renderGameTab();
       showToast('直前の記録を1つ取り消しました', 'info');
     }
+
     function confirmClearGame() {
       openConfirmModal('試合データのリセット', '現在の得点・ファウル・出場メンバーの記録をすべて消去しますか？', () => {
         state.events = [];
@@ -1683,8 +1734,7 @@ resetInputMode(false);
         cancelBtn.classList.remove('hidden');
         document.getElementById(`mode-btn-${mode.value}`)?.classList.add('ring-4', 'ring-slate-900', 'scale-105');
       }
-
-      document.getElementById('sb-white-name').textContent = whiteTeam.name || '白チーム';
+document.getElementById('sb-white-name').textContent = whiteTeam.name || '白チーム';
       document.getElementById('sb-blue-name').textContent = blueTeam.name || '青チーム';
       document.getElementById('sb-white-score').textContent = scores.white.total;
       document.getElementById('sb-blue-score').textContent = scores.blue.total;
@@ -1877,7 +1927,8 @@ resetInputMode(false);
         }
 
         const borderColorCls = side === 'white' ? 'border-slate-900' : 'border-red-700';
-return `
+
+        return `
           <div class="border-2 ${borderColorCls} p-1 bg-white">
             <div class="flex items-center justify-between mb-0.5">
               <div class="flex items-baseline gap-1.5 pl-1">
@@ -1946,8 +1997,7 @@ return `
           </div>
         `;
       };
-
-      const buildTeamFoulHTML = (side) => {
+const buildTeamFoulHTML = (side) => {
         const tf = scores[side].tf;
         const makeBox = (q1, q2) => {
           let rows = '';
@@ -2146,7 +2196,8 @@ return `
               </div>
             </div>
           </div>
-    <div class="col-span-5 border-2 border-slate-900 p-1 bg-white flex flex-col">
+
+          <div class="col-span-5 border-2 border-slate-900 p-1 bg-white flex flex-col">
             <div class="text-center font-bold text-[9px] pb-0.5 border-b border-slate-900 mb-0.5">
               ランニング スコア <span class="tracking-wider">RUNNING SCORE</span>
             </div>
