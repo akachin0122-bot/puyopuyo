@@ -1,6 +1,6 @@
 {
-  "name": "なんちゃってぷよぷよ",
-  "short_name": "なんちゃってぷよぷよ",
+  "name": "スコア入力アプリ",
+  "short_name": "スコア入力アプリ",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
