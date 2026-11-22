@@ -837,8 +837,11 @@
         ? 'text-[11px] font-bold text-amber-600'
         : 'text-[11px] font-bold text-orange-600';
       document.getElementById('edit-player-num').value = isOfficial
-        ? (p.officialNumber !== undefined && String(p.officialNumber).trim() !== '' ? p.officialNumber : p.number)
-        : (p.number || '');
+        ? (p.officialNumber !== undefined && String(p.officialNumber).trim() !== '' ? String(p.officialNumber).trim() : '')
+        : String(p.number || '').trim();
+      document.getElementById('edit-player-num').placeholder = isOfficial
+        ? `通常: #${p.number || '-'}（空欄なら通常番号を使用）`
+        : '背番号';
       document.getElementById('edit-player-grade').value = p.grade || '';
       document.getElementById('edit-player-name').value = p.name || '';
       document.getElementById('edit-player-modal').classList.remove('hidden');
@@ -855,7 +858,7 @@
       const grade = document.getElementById('edit-player-grade').value.trim();
       const name = document.getElementById('edit-player-name').value.trim();
 
-      if (!num || !name) {
+      if (!name || (!num && !isOfficial)) {
         showToast('背番号と選手氏名を入力してください', 'error');
         return;
       }
@@ -1721,11 +1724,11 @@ const parsed = JSON.parse(rawText);
         const rawOff = String(p.officialNumber ?? '').trim();
         const hasOff = rawOff !== '';
         const isOfficialMode = state.numberMode === 'official';
-        const dispNum = isOfficialMode ? (hasOff ? `#${rawOff}` : '未定') : `#${String(p.number ?? '').trim()}`;
+        const dispNum = isOfficialMode ? (hasOff ? `#${rawOff}` : '未設定') : `#${String(p.number ?? '').trim()}`;
         const badgeHtml = isOfficialMode
           ? (hasOff
               ? `<span class="text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.2 rounded">公式戦番号（通常#${p.number}）</span>`
-              : `<span class="text-[10px] text-slate-400">公式未登録（通常#${p.number}）</span>`)
+              : `<span class="text-[10px] text-slate-500">公式未設定・通常番号表示中</span>`)
           : (hasOff ? `<span class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded">公式#${rawOff}</span>` : '');
         return `
           <div class="flex items-center justify-between px-3 py-1.5 text-xs ${isActive ? 'hover:bg-slate-50' : 'bg-slate-50 opacity-50'}">
