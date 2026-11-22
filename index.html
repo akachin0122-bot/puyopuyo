@@ -258,6 +258,24 @@
           </div>
         </div>
 
+        <!-- 背番号モード切替（練習試合 / 公式戦） -->
+        <div class="mt-3 pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <div class="text-xs font-bold text-slate-700">背番号モード（練習試合 / 公式戦）</div>
+            <div id="num-mode-desc" class="text-[11px] text-slate-500">普段の練習試合用の背番号を使用します（スプレッドシート連携対象）</div>
+          </div>
+          <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 self-start sm:self-auto">
+            <button onclick="setNumberMode('practice')" id="btn-num-practice"
+              class="px-3 py-1.5 rounded-lg text-xs font-bold transition bg-slate-900 text-white shadow-xs">
+              🏀 練習試合番号
+            </button>
+            <button onclick="setNumberMode('official')" id="btn-num-official"
+              class="px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900">
+              🏆 公式戦番号
+            </button>
+          </div>
+        </div>
+
         <!-- 試合メタデータ入力 -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3.5">
           <div>
@@ -613,7 +631,10 @@
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
         <div class="flex items-center gap-2">
           <span class="text-lg">✏️</span>
-          <h3 class="font-black text-base text-slate-900">選手情報の編集</h3>
+          <div>
+            <h3 class="font-black text-base text-slate-900">選手情報の編集</h3>
+            <p id="edit-player-mode-badge" class="text-[11px] font-bold text-orange-600">練習試合用背番号を編集</p>
+          </div>
         </div>
         <button onclick="closeEditPlayerModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center font-bold">✕</button>
       </div>
@@ -780,12 +801,45 @@
     let editingPlayerTarget = 'hanashi';
     let editingPlayerIndex = -1;
 
+    function getEffectiveNumber(player) {
+      if (!player) return '';
+      if (state.numberMode === 'official') {
+        const off = String(player.officialNumber ?? '').trim();
+        return off !== '' ? off : String(player.number ?? '').trim();
+      }
+      return String(player.number ?? '').trim();
+    }
+
+    function setNumberMode(mode) {
+      if (mode !== 'practice' && mode !== 'official') return;
+      state.numberMode = mode;
+      sortTeamPlayers('hanashi');
+      sortTeamPlayers('opponent');
+      saveToLocalStorage();
+      renderAll();
+      showToast(
+        mode === 'official'
+          ? '「🏆 公式戦番号」モードに切り替えました（未設定の選手は通常番号を表示）'
+          : '「🏀 練習試合番号」モードに切り替えました',
+        'success'
+      );
+    }
+
     function openEditPlayerModal(target, idx) {
       const p = state[target].players[idx];
       if (!p) return;
       editingPlayerTarget = target;
       editingPlayerIndex = idx;
-      document.getElementById('edit-player-num').value = p.number || '';
+      const isOfficial = state.numberMode === 'official';
+      document.getElementById('edit-player-mode-badge').textContent = isOfficial
+        ? '🏆 公式戦用の背番号を編集（通常番号は保持されます）'
+        : '🏀 練習試合用の背番号を編集';
+      document.getElementById('edit-player-mode-badge').className = isOfficial
+        ? 'text-[11px] font-bold text-amber-600'
+        : 'text-[11px] font-bold text-orange-600';
+      document.getElementById('edit-player-num').value = isOfficial
+        ? (p.officialNumber !== undefined && String(p.officialNumber).trim() !== '' ? p.officialNumber : p.number)
+        : (p.number || '');
       document.getElementById('edit-player-grade').value = p.grade || '';
       document.getElementById('edit-player-name').value = p.name || '';
       document.getElementById('edit-player-modal').classList.remove('hidden');
@@ -808,33 +862,41 @@
       }
 
       const team = state[editingPlayerTarget];
-      const duplicate = team.players.some((p, i) => i !== editingPlayerIndex && p.number === num);
+      const targetPlayer = team.players[editingPlayerIndex];
+      const isOfficial = state.numberMode === 'official';
+      const oldEffectiveNum = getEffectiveNumber(targetPlayer);
+
+      const duplicate = team.players.some((p, i) => i !== editingPlayerIndex && getEffectiveNumber(p) === num);
       if (duplicate) {
         showToast(`背番号 #${num} は他の選手と重複しています`, 'error');
         return;
       }
 
-      const oldNum = team.players[editingPlayerIndex].number;
-      team.players[editingPlayerIndex].number = num;
-      team.players[editingPlayerIndex].grade = grade;
-      team.players[editingPlayerIndex].name = name;
+      if (isOfficial) {
+        targetPlayer.officialNumber = num;
+      } else {
+        targetPlayer.number = num;
+      }
+      targetPlayer.grade = grade;
+      targetPlayer.name = name;
 
-      // 試合中の出場記録やイベントの背番号も連動して更新
-      if (oldNum !== num) {
+      const newEffectiveNum = getEffectiveNumber(targetPlayer);
+
+      if (oldEffectiveNum !== newEffectiveNum) {
         const side = (editingPlayerTarget === 'hanashi')
           ? state.hanashiColor
           : (state.hanashiColor === 'white' ? 'blue' : 'white');
         [1, 2, 3, 4, 5].forEach(q => {
-          const cIdx = state.onCourt[side][q].indexOf(oldNum);
-          if (cIdx >= 0) state.onCourt[side][q][cIdx] = num;
-          if (state.participation[side][q][oldNum]) {
-            state.participation[side][q][num] = state.participation[side][q][oldNum];
-            delete state.participation[side][q][oldNum];
+          const cIdx = state.onCourt[side][q].indexOf(oldEffectiveNum);
+          if (cIdx >= 0) state.onCourt[side][q][cIdx] = newEffectiveNum;
+          if (state.participation[side][q][oldEffectiveNum]) {
+            state.participation[side][q][newEffectiveNum] = state.participation[side][q][oldEffectiveNum];
+            delete state.participation[side][q][oldEffectiveNum];
           }
         });
         state.events.forEach(ev => {
-          if (ev.side === side && ev.number === oldNum) {
-            ev.number = num;
+          if (ev.side === side && ev.number === oldEffectiveNum) {
+            ev.number = newEffectiveNum;
             ev.playerName = name;
           }
         });
@@ -844,7 +906,7 @@
       saveToLocalStorage();
       closeEditPlayerModal();
       renderAll();
-      showToast(`#${num} ${name} の情報を更新しました`, 'success');
+      showToast(`#${newEffectiveNum} ${name} の${isOfficial ? '公式戦番号' : '情報'}を更新しました`, 'success');
     }
 
     // =========================================================
@@ -935,12 +997,22 @@
             state.hanashi.acoach = data.acoach;
             document.getElementById('hanashi-acoach').value = data.acoach;
           }
-          state.hanashi.players = data.players.map(p => ({
-            number: String(p.number || '').trim(),
-            grade: String(p.grade || '').trim(),
-            name: String(p.name || '').trim(),
-            active: p.active !== false
-          })).filter(p => p.number && p.name);
+          const existingMap = new Map();
+          (state.hanashi.players || []).forEach(ep => {
+            existingMap.set(String(ep.name || '').trim(), ep.officialNumber);
+          });
+          state.hanashi.players = data.players.map(p => {
+            const pName = String(p.name || '').trim();
+            const sheetOfficial = String(p.officialNumber ?? p.official_number ?? '').trim();
+            const fallbackOfficial = existingMap.get(pName) || '';
+            return {
+              number: String(p.number || '').trim(),
+              officialNumber: sheetOfficial !== '' ? sheetOfficial : fallbackOfficial,
+              grade: String(p.grade || '').trim(),
+              name: pName,
+              active: p.active !== false
+            };
+          }).filter(p => p.number && p.name);
 
           sortTeamPlayers('hanashi');
           saveToLocalStorage();
@@ -973,7 +1045,13 @@
               action: 'overwrite_master',
               coach: state.hanashi.coach,
               acoach: state.hanashi.acoach,
-              players: state.hanashi.players
+              players: state.hanashi.players.map(p => ({
+                number: String(p.number || '').trim(),
+                officialNumber: String(p.officialNumber || '').trim(),
+                grade: String(p.grade || '').trim(),
+                name: String(p.name || '').trim(),
+                active: p.active !== false
+              }))
             };
 
             const res = await fetch(url, {
@@ -1105,6 +1183,7 @@
     let state = {
       activeTab: 'setup',
       hanashiColor: 'white',
+      numberMode: 'practice',
       meta: {
         tournament: '練習試合',
         date: new Date().toISOString().split('T')[0],
@@ -1158,6 +1237,7 @@
         if (saved) {
           const parsed = JSON.parse(saved);
           state = { ...state, ...parsed };
+          if (!state.numberMode) state.numberMode = 'practice';
           state.inputMode = { type: 'score2', value: 2 };
           document.getElementById('meta-tournament').value = state.meta.tournament || '';
           document.getElementById('meta-date').value = state.meta.date || '';
@@ -1282,11 +1362,15 @@ function switchTab(tabName) {
         return;
       }
       const team = state[target];
-      if (team.players.some(p => p.number === num)) {
+      if (team.players.some(p => getEffectiveNumber(p) === num || p.number === num)) {
         showToast(`背番号 #${num} は既に登録されています`, 'error');
         return;
       }
-      team.players.push({ number: num, grade: grade || '', name, active: true });
+      if (state.numberMode === 'official') {
+        team.players.push({ number: num, officialNumber: num, grade: grade || '', name, active: true });
+      } else {
+        team.players.push({ number: num, officialNumber: '', grade: grade || '', name, active: true });
+      }
       sortTeamPlayers(target);
 
       numEl.value = '';
@@ -1302,7 +1386,7 @@ function switchTab(tabName) {
         const gA = Number(a.grade) || 0;
         const gB = Number(b.grade) || 0;
         if (gA !== gB) return gB - gA; // 学年降順 (6年 -> 1年)
-        return Number(a.number) - Number(b.number); // 背番号昇順
+        return Number(getEffectiveNumber(a)) - Number(getEffectiveNumber(b)); // 背番号昇順
       });
     }
 
@@ -1363,7 +1447,13 @@ function switchTab(tabName) {
           const grade = playerMatch[3];
 
           if (!state.opponent.players.some(p => p.number === num)) {
-            state.opponent.players.push({ number: num, grade, name, active: true });
+            state.opponent.players.push({
+              number: num,
+              officialNumber: state.numberMode === 'official' ? num : '',
+              grade,
+              name,
+              active: true
+            });
             addedCount++;
           }
         }
@@ -1553,6 +1643,21 @@ const parsed = JSON.parse(rawText);
     }
 
     function renderSetupTab() {
+      const btnP = document.getElementById('btn-num-practice');
+      const btnO = document.getElementById('btn-num-official');
+      const modeDesc = document.getElementById('num-mode-desc');
+      if (btnP && btnO && modeDesc) {
+        if (state.numberMode === 'official') {
+          btnO.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-amber-500 text-slate-950 shadow-xs';
+          btnP.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
+          modeDesc.textContent = '公式戦用の背番号を表示中（✏️編集で公式戦番号を設定・残せます。通常番号は維持）';
+        } else {
+          btnP.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition bg-slate-900 text-white shadow-xs';
+          btnO.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition text-slate-600 hover:text-slate-900';
+          modeDesc.textContent = '普段の練習試合用の背番号を使用します（スプレッドシート連携対象）';
+        }
+      }
+
       const btnW = document.getElementById('btn-color-white');
       const btnB = document.getElementById('btn-color-blue');
       const hBadge = document.getElementById('hanashi-badge');
@@ -1577,14 +1682,22 @@ const parsed = JSON.parse(rawText);
       const hList = document.getElementById('hanashi-player-list');
       hList.innerHTML = state.hanashi.players.map((p, idx) => {
         const isActive = p.active !== false;
+        const dispNum = getEffectiveNumber(p);
+        const hasOff = String(p.officialNumber ?? '').trim() !== '';
+        const badgeHtml = state.numberMode === 'official'
+          ? (hasOff
+              ? `<span class="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.2 rounded">公式(通常#${p.number})</span>`
+              : `<span class="text-[10px] text-slate-400">(通常)</span>`)
+          : (hasOff ? `<span class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded">公式#${p.officialNumber}</span>` : '');
         return `
           <div class="flex items-center justify-between px-3 py-1.5 text-xs ${isActive ? 'hover:bg-slate-50' : 'bg-slate-50 opacity-50'}">
-            <label class="flex items-center gap-2.5 cursor-pointer flex-1">
+            <label class="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
               <input type="checkbox" ${isActive ? 'checked' : ''} onchange="togglePlayerRosterActive('hanashi', ${idx})"
-                class="w-4 h-4 rounded accent-orange-500 cursor-pointer" />
-              <span class="w-7 text-center font-black bg-slate-100 text-slate-800 py-0.5 rounded">#${p.number}</span>
-              <span class="text-slate-400 w-7">${p.grade ? p.grade + '年' : '-'}</span>
-              <span class="font-bold text-slate-800">${p.name}</span>
+                class="w-4 h-4 rounded accent-orange-500 cursor-pointer shrink-0" />
+              <span class="w-8 text-center font-black ${state.numberMode === 'official' && hasOff ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-slate-100 text-slate-800'} py-0.5 rounded shrink-0">#${dispNum}</span>
+              <span class="text-slate-400 w-7 shrink-0">${p.grade ? p.grade + '年' : '-'}</span>
+              <span class="font-bold text-slate-800 truncate">${p.name}</span>
+              ${badgeHtml}
             </label>
             <div class="flex items-center gap-1 shrink-0">
               <button onclick="openEditPlayerModal('hanashi', ${idx})" class="text-slate-500 hover:text-orange-600 bg-slate-100 hover:bg-orange-50 px-2 py-0.5 rounded text-[11px] font-bold">✏️編集</button>
@@ -1600,14 +1713,15 @@ const parsed = JSON.parse(rawText);
       } else {
         oList.innerHTML = state.opponent.players.map((p, idx) => {
           const isActive = p.active !== false;
+          const dispNum = getEffectiveNumber(p);
           return `
             <div class="flex items-center justify-between px-3 py-1.5 text-xs ${isActive ? 'hover:bg-slate-50' : 'bg-slate-50 opacity-50'}">
-              <label class="flex items-center gap-2.5 cursor-pointer flex-1">
+              <label class="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
                 <input type="checkbox" ${isActive ? 'checked' : ''} onchange="togglePlayerRosterActive('opponent', ${idx})"
-                  class="w-4 h-4 rounded accent-blue-600 cursor-pointer" />
-                <span class="w-7 text-center font-black bg-blue-50 text-blue-800 py-0.5 rounded">#${p.number}</span>
-                <span class="text-slate-400 w-7">${p.grade ? p.grade + '年' : '-'}</span>
-                <span class="font-bold text-slate-800">${p.name}</span>
+                  class="w-4 h-4 rounded accent-blue-600 cursor-pointer shrink-0" />
+                <span class="w-8 text-center font-black bg-blue-50 text-blue-800 py-0.5 rounded shrink-0">#${dispNum}</span>
+                <span class="text-slate-400 w-7 shrink-0">${p.grade ? p.grade + '年' : '-'}</span>
+                <span class="font-bold text-slate-800 truncate">${p.name}</span>
               </label>
               <div class="flex items-center gap-1 shrink-0">
                 <button onclick="openEditPlayerModal('opponent', ${idx})" class="text-slate-500 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 px-2 py-0.5 rounded text-[11px] font-bold">✏️編集</button>
@@ -1797,12 +1911,13 @@ const parsed = JSON.parse(rawText);
       }
 
       grid.innerHTML = benchPlayers.map(p => {
-        const isOn = courtArr.includes(p.number);
-        const fouls = state.events.filter(e => e.type === 'foul' && e.side === side && e.number === p.number).length;
-        const playedQs = [1, 2, 3, 4].filter(qn => state.participation[side][qn][p.number]);
+        const effNum = getEffectiveNumber(p);
+        const isOn = courtArr.includes(effNum);
+        const fouls = state.events.filter(e => e.type === 'foul' && e.side === side && e.number === effNum).length;
+        const playedQs = [1, 2, 3, 4].filter(qn => state.participation[side][qn][effNum]);
 
         return `
-          <button onclick="toggleCourtPlayerInModal('${p.number}')"
+          <button onclick="toggleCourtPlayerInModal('${effNum}')"
             class="p-2.5 rounded-xl border-2 text-left transition flex items-center justify-between ${
               isOn
                 ? 'bg-emerald-600 text-white border-emerald-700 shadow-md'
@@ -1810,7 +1925,7 @@ const parsed = JSON.parse(rawText);
             }">
             <div class="min-w-0">
               <div class="flex items-center gap-1.5">
-                <span class="text-sm font-black ${isOn ? 'text-white' : 'text-slate-900'}">#${p.number}</span>
+                <span class="text-sm font-black ${isOn ? 'text-white' : 'text-slate-900'}">#${effNum}</span>
                 <span class="text-xs font-bold truncate">${p.name}</span>
               </div>
               <div class="text-[10px] mt-0.5 ${isOn ? 'text-emerald-100' : 'text-slate-400'}">
@@ -1925,7 +2040,7 @@ function openTimeoutModal(side) {
 
         const optionsHTML = [
           `<option value="?" ${ev.number === '?' ? 'selected' : ''}>#? 不明</option>`,
-          ...team.players.map(p => `<option value="${p.number}" ${ev.number === p.number ? 'selected' : ''}>#${p.number} ${p.name}</option>`)
+          ...team.players.map(p => { const en = getEffectiveNumber(p); return `<option value="${en}" ${ev.number === en ? 'selected' : ''}>#${en} ${p.name}</option>`; })
         ].join('');
 
         return `
@@ -2077,7 +2192,10 @@ function openTimeoutModal(side) {
 
         const container = document.getElementById(`court-${side}-players`);
         const activePlayers = activeNums
-          .map(num => team.players.find(p => p.number === num))
+          .map(num => {
+            const found = team.players.find(p => getEffectiveNumber(p) === num || p.number === num);
+            return found ? { ...found, _dispNum: getEffectiveNumber(found) } : null;
+          })
           .filter(Boolean);
 
         let modeRingClass = '';
@@ -2109,9 +2227,10 @@ function openTimeoutModal(side) {
         container.innerHTML = `
           <div class="grid grid-cols-6 gap-1">
             ${activePlayers.map(p => {
-              const fouls = state.events.filter(e => e.type === 'foul' && e.side === side && e.number === p.number).length;
+              const dNum = p._dispNum || getEffectiveNumber(p);
+              const fouls = state.events.filter(e => e.type === 'foul' && e.side === side && e.number === dNum).length;
               const pts = state.events
-                .filter(e => e.type === 'score' && e.side === side && e.number === p.number)
+                .filter(e => e.type === 'score' && e.side === side && e.number === dNum)
                 .reduce((sum, e) => sum + e.points, 0);
 
               const cardCls = side === 'white'
@@ -2122,9 +2241,9 @@ function openTimeoutModal(side) {
 
               if (isHanashi) {
                 return `
-                  <button onclick="handlePlayerTap('${side}', '${p.number}', '${safeName}')"
+                  <button onclick="handlePlayerTap('${side}', '${dNum}', '${safeName}')"
                     class="relative py-2 px-0.5 rounded-xl border-2 transition active:scale-95 flex flex-col items-center justify-between min-h-[76px] ${cardCls} ${modeRingClass}">
-                    <span class="text-base sm:text-lg font-black leading-none">#${p.number}</span>
+                    <span class="text-base sm:text-lg font-black leading-none">#${dNum}</span>
                     <span class="text-[11px] font-bold leading-tight text-center break-all line-clamp-2 w-full px-0.5 mt-1">${p.name}</span>
                     <span class="text-[9px] mt-0.5 font-bold text-slate-500">${pts}点</span>
                     ${fouls > 0 ? `<span class="absolute -top-1.5 -right-1 px-1 py-0.2 rounded-full text-[9px] font-black shadow-xs ${fouls >= 5 ? 'bg-red-600 text-white' : 'bg-amber-400 text-slate-900'}">F${fouls}</span>` : ''}
@@ -2132,9 +2251,9 @@ function openTimeoutModal(side) {
                 `;
               } else {
                 return `
-                  <button onclick="handlePlayerTap('${side}', '${p.number}', '${safeName}')"
+                  <button onclick="handlePlayerTap('${side}', '${dNum}', '${safeName}')"
                     class="relative py-2 px-0.5 rounded-xl border-2 transition active:scale-95 flex flex-col items-center justify-center min-h-[76px] ${cardCls} ${modeRingClass}">
-                    <span class="text-2xl sm:text-3xl font-black tracking-tighter leading-none">${p.number}</span>
+                    <span class="text-2xl sm:text-3xl font-black tracking-tighter leading-none">${dNum}</span>
                     <span class="text-[9px] mt-1.5 font-bold text-slate-400">${pts}点</span>
                     ${fouls > 0 ? `<span class="absolute -top-1.5 -right-1 px-1 py-0.2 rounded-full text-[9px] font-black shadow-xs ${fouls >= 5 ? 'bg-red-600 text-white' : 'bg-amber-400 text-slate-900'}">F${fouls}</span>` : ''}
                   </button>
@@ -2198,7 +2317,7 @@ function renderScoresheetTab() {
             const gA = Number(a.grade) || 0;
             const gB = Number(b.grade) || 0;
             if (gA !== gB) return gB - gA;
-            return Number(a.number) - Number(b.number);
+            return Number(getEffectiveNumber(a)) - Number(getEffectiveNumber(b));
           });
 
         let rowsHTML = '';
@@ -2217,7 +2336,8 @@ function renderScoresheetTab() {
           }
 
           const qCells = [1, 2, 3, 4].map(qn => {
-            const pType = state.participation[side][qn][p.number];
+            const sheetNum = getEffectiveNumber(p);
+          const pType = state.participation[side][qn][sheetNum];
             if (!pType) return `<td></td>`;
             const isRed = (qn === 1 || qn === 3);
             let cls = '';
@@ -2227,7 +2347,7 @@ function renderScoresheetTab() {
             return `<td class="${cls}"></td>`;
           }).join('');
 
-          const pFouls = state.events.filter(e => e.type === 'foul' && e.side === side && e.number === p.number);
+          const pFouls = state.events.filter(e => e.type === 'foul' && e.side === side && e.number === sheetNum);
           const fCells = [0, 1, 2, 3, 4].map(fIdx => {
             const f = pFouls[fIdx];
             if (!f) return `<td></td>`;
@@ -2240,7 +2360,7 @@ function renderScoresheetTab() {
               <td>${rowNo}</td>
               <td>${p.grade || ''}</td>
               <td class="text-left pl-1 font-medium truncate max-w-[110px]">${p.name}</td>
-              <td class="font-bold">${p.number}</td>
+              <td class="font-bold">${sheetNum}</td>
               ${qCells}
               ${fCells}
             </tr>
