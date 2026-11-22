@@ -151,6 +151,34 @@
     .text-q-red { color: #dc2626; }
     .text-q-black { color: #111827; }
 
+    /* 1Q・2Qファール識別用の四角枠 */
+    .foul-box-1q {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1.2px solid #dc2626;
+      border-radius: 1.5px;
+      padding: 0 1.5px;
+      line-height: 1;
+      font-size: 8px;
+      font-weight: 900;
+      color: #dc2626;
+      box-sizing: border-box;
+    }
+    .foul-box-2q {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1.2px solid #111827;
+      border-radius: 1.5px;
+      padding: 0 1.5px;
+      line-height: 1;
+      font-size: 8px;
+      font-weight: 900;
+      color: #111827;
+      box-sizing: border-box;
+    }
+
     /* 厳格なA4縦1枚印刷用設定 */
     @media print {
       body {
@@ -2427,7 +2455,13 @@ function renderScoresheetTab() {
           const fCells = [0, 1, 2, 3, 4].map(fIdx => {
             const f = pFouls[fIdx];
             if (!f) return `<td></td>`;
-            const cCls = (f.quarter === 1 || f.quarter === 3) ? 'text-q-red' : 'text-q-black';
+            if (f.quarter === 1) {
+              return `<td><span class="foul-box-1q">${f.foulType}</span></td>`;
+            }
+            if (f.quarter === 2) {
+              return `<td><span class="foul-box-2q">${f.foulType}</span></td>`;
+            }
+            const cCls = (f.quarter === 3) ? 'text-q-red' : 'text-q-black';
             return `<td class="${cCls} font-bold">${f.foulType}</td>`;
           }).join('');
 
