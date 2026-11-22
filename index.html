@@ -314,6 +314,28 @@
                 class="w-full mt-0.5 px-2 py-1 text-xs bg-white border border-slate-300 rounded-lg" />
             </div>
           </div>
+          <!-- スプレッドシート共有バー -->
+          <div class="mt-2.5 p-2.5 bg-emerald-50/80 border border-emerald-200 rounded-xl flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-1.5">
+              <span class="text-sm">📊</span>
+              <div>
+                <div class="text-[11px] font-bold text-emerald-900">スプレッドシート共有</div>
+                <div id="gas-status-text" class="text-[10px] text-emerald-700">URL未設定（この端末のみ保存）</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button onclick="openGasModal()" class="px-2 py-1.5 bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-[11px] font-bold">
+                ⚙️ URL設定
+              </button>
+              <button onclick="syncFromSpreadsheet(false)" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-lg text-[11px] font-bold shadow-xs">
+                ⬇️ 読込
+              </button>
+              <button onclick="syncToSpreadsheet()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white rounded-lg text-[11px] font-bold shadow-xs">
+                ⬆️ 上書き保存
+              </button>
+            </div>
+          </div>
+
      <!-- 選手追加フォーム -->
           <div class="flex gap-1.5 mt-3">
             <input type="number" id="hanashi-add-num" placeholder="背番号" class="w-16 px-2 py-1.5 text-xs border border-slate-300 rounded-lg" />
@@ -593,6 +615,68 @@
 
   </main>
  <!-- モーダル各種 -->
+  <!-- 選手編集モーダル -->
+  <div id="edit-player-modal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/65 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">✏️</span>
+          <h3 class="font-black text-base text-slate-900">選手情報の編集</h3>
+        </div>
+        <button onclick="closeEditPlayerModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center font-bold">✕</button>
+      </div>
+      <div class="space-y-3">
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">背番号</label>
+            <input type="number" id="edit-player-num" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">学年（1〜6）</label>
+            <input type="number" id="edit-player-grade" min="1" max="6" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">選手氏名</label>
+          <input type="text" id="edit-player-name" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none" />
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeEditPlayerModal()" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">キャンセル</button>
+        <button onclick="saveEditedPlayer()" class="px-5 py-2 rounded-xl text-xs font-bold bg-orange-500 text-white hover:bg-orange-600 shadow">保存する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- スプレッドシート共有モーダル -->
+  <div id="gas-modal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/65 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">📊</span>
+          <h3 class="font-black text-base text-slate-900">スプレッドシート共有設定</h3>
+        </div>
+        <button onclick="closeGasModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center font-bold">✕</button>
+      </div>
+      <div class="space-y-2 text-xs text-slate-600 leading-relaxed">
+        <p>Google Apps Script（GAS）のウェブアプリURLを設定すると、葉梨のメンバーマスタをスプレッドシート経由で全員と共有できます。</p>
+        <p class="text-amber-700 font-bold">※「シートへ上書き保存」を押すと、スプレッドシートの古いデータは消去され、現在の最新メンバー一覧だけが登録されます。</p>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">GAS ウェブアプリURL</label>
+        <input type="url" id="gas-url-input" placeholder="https://script.google.com/macros/s/..."
+          class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-emerald-500 outline-none" />
+      </div>
+      <div class="flex items-center justify-between gap-2 pt-2">
+        <button onclick="clearSavedGasUrl()" class="px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50">URL削除</button>
+        <div class="flex gap-2">
+          <button onclick="closeGasModal()" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">キャンセル</button>
+          <button onclick="saveGasUrlFromModal()" class="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow">保存する</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="apikey-modal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/65 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -697,6 +781,230 @@
   </div>
 
   <script>
+
+    // =========================================================
+    // 選手マスタ編集機能（背番号・学年・氏名）
+    // =========================================================
+    let editingPlayerTarget = 'hanashi';
+    let editingPlayerIndex = -1;
+
+    function openEditPlayerModal(target, idx) {
+      const p = state[target].players[idx];
+      if (!p) return;
+      editingPlayerTarget = target;
+      editingPlayerIndex = idx;
+      document.getElementById('edit-player-num').value = p.number || '';
+      document.getElementById('edit-player-grade').value = p.grade || '';
+      document.getElementById('edit-player-name').value = p.name || '';
+      document.getElementById('edit-player-modal').classList.remove('hidden');
+    }
+
+    function closeEditPlayerModal() {
+      document.getElementById('edit-player-modal').classList.add('hidden');
+      editingPlayerIndex = -1;
+    }
+
+    function saveEditedPlayer() {
+      if (editingPlayerIndex < 0) return;
+      const num = document.getElementById('edit-player-num').value.trim();
+      const grade = document.getElementById('edit-player-grade').value.trim();
+      const name = document.getElementById('edit-player-name').value.trim();
+
+      if (!num || !name) {
+        showToast('背番号と選手氏名を入力してください', 'error');
+        return;
+      }
+
+      const team = state[editingPlayerTarget];
+      const duplicate = team.players.some((p, i) => i !== editingPlayerIndex && p.number === num);
+      if (duplicate) {
+        showToast(`背番号 #${num} は他の選手と重複しています`, 'error');
+        return;
+      }
+
+      const oldNum = team.players[editingPlayerIndex].number;
+      team.players[editingPlayerIndex].number = num;
+      team.players[editingPlayerIndex].grade = grade;
+      team.players[editingPlayerIndex].name = name;
+
+      // 試合中の出場記録やイベントの背番号も連動して更新
+      if (oldNum !== num) {
+        const side = (editingPlayerTarget === 'hanashi')
+          ? state.hanashiColor
+          : (state.hanashiColor === 'white' ? 'blue' : 'white');
+        [1, 2, 3, 4, 5].forEach(q => {
+          const cIdx = state.onCourt[side][q].indexOf(oldNum);
+          if (cIdx >= 0) state.onCourt[side][q][cIdx] = num;
+          if (state.participation[side][q][oldNum]) {
+            state.participation[side][q][num] = state.participation[side][q][oldNum];
+            delete state.participation[side][q][oldNum];
+          }
+        });
+        state.events.forEach(ev => {
+          if (ev.side === side && ev.number === oldNum) {
+            ev.number = num;
+            ev.playerName = name;
+          }
+        });
+      }
+
+      sortTeamPlayers(editingPlayerTarget);
+      saveToLocalStorage();
+      closeEditPlayerModal();
+      renderAll();
+      showToast(`#${num} ${name} の情報を更新しました`, 'success');
+    }
+
+    // =========================================================
+    // スプレッドシート（GAS）共有機能（上書き更新・読込）
+    // =========================================================
+    const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbxY964GX6vFDijvZZHAkcarqhFpob_d171aHdhKgboAaozzOHmH5WJ7AhYiCUC4Y5bU/exec';
+    const GAS_URL_STORAGE_NAME = 'minibasket_hanashi_gas_url_v1';
+
+    function getStoredGasUrl() {
+      try {
+        return (localStorage.getItem(GAS_URL_STORAGE_NAME) || DEFAULT_GAS_URL).trim();
+      } catch (e) {
+        return DEFAULT_GAS_URL;
+      }
+    }
+
+    function updateGasStatusUI() {
+      const url = getStoredGasUrl();
+      const statusEl = document.getElementById('gas-status-text');
+      if (!statusEl) return;
+      if (url) {
+        statusEl.textContent = '連携URL設定済（全員とマスタ共有可能）';
+        statusEl.className = 'text-[10px] text-emerald-700 font-bold';
+      } else {
+        statusEl.textContent = 'URL未設定（この端末のみ保存）';
+        statusEl.className = 'text-[10px] text-slate-500';
+      }
+    }
+
+    function openGasModal() {
+      document.getElementById('gas-url-input').value = getStoredGasUrl();
+      document.getElementById('gas-modal').classList.remove('hidden');
+    }
+
+    function closeGasModal() {
+      document.getElementById('gas-modal').classList.add('hidden');
+    }
+
+    function saveGasUrlFromModal() {
+      const val = document.getElementById('gas-url-input').value.trim();
+      if (!val) {
+        showToast('GASのURLを入力してください', 'error');
+        return;
+      }
+      try {
+        localStorage.setItem(GAS_URL_STORAGE_NAME, val);
+        updateGasStatusUI();
+        closeGasModal();
+        showToast('スプレッドシート連携URLを保存しました', 'success');
+      } catch (e) {
+        showToast('保存に失敗しました', 'error');
+      }
+    }
+
+    function clearSavedGasUrl() {
+      try {
+        localStorage.removeItem(GAS_URL_STORAGE_NAME);
+        document.getElementById('gas-url-input').value = DEFAULT_GAS_URL;
+        updateGasStatusUI();
+        closeGasModal();
+        showToast('初期設定の共有URLに戻しました', 'info');
+      } catch (e) {}
+    }
+
+    async function syncFromSpreadsheet(isSilent = false) {
+      const url = getStoredGasUrl();
+      if (!url) {
+        if (!isSilent) {
+          showToast('先に「⚙️ URL設定」からGASのURLを登録してください', 'error');
+          openGasModal();
+        }
+        return;
+      }
+
+      if (!isSilent) showToast('スプレッドシートから最新マスタを読込中...', 'info');
+
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('通信エラー');
+        const data = await res.json();
+
+        if (data && Array.isArray(data.players)) {
+          if (data.coach !== undefined) {
+            state.hanashi.coach = data.coach;
+            document.getElementById('hanashi-coach').value = data.coach;
+          }
+          if (data.acoach !== undefined) {
+            state.hanashi.acoach = data.acoach;
+            document.getElementById('hanashi-acoach').value = data.acoach;
+          }
+          state.hanashi.players = data.players.map(p => ({
+            number: String(p.number || '').trim(),
+            grade: String(p.grade || '').trim(),
+            name: String(p.name || '').trim(),
+            active: p.active !== false
+          })).filter(p => p.number && p.name);
+
+          sortTeamPlayers('hanashi');
+          saveToLocalStorage();
+          renderAll();
+          if (!isSilent) showToast(`スプレッドシートから${state.hanashi.players.length}名を読み込みました！`, 'success');
+        } else {
+          if (!isSilent) showToast('シートに有効なデータがありませんでした', 'error');
+        }
+      } catch (err) {
+        console.error(err);
+        if (!isSilent) showToast('スプレッドシートの読込に失敗しました', 'error');
+      }
+    }
+
+    async function syncToSpreadsheet() {
+      const url = getStoredGasUrl();
+      if (!url) {
+        showToast('先に「⚙️ URL設定」からGASのURLを登録してください', 'error');
+        openGasModal();
+        return;
+      }
+
+      openConfirmModal(
+        'スプレッドシートへ上書き保存',
+        'スプレッドシート内の古いデータはすべて削除され、現在の画面の「葉梨メンバー・コーチ情報」だけが新しく登録されます。よろしいですか？',
+        async () => {
+          showToast('スプレッドシートを更新中...', 'info');
+          try {
+            const payload = {
+              action: 'overwrite_master',
+              coach: state.hanashi.coach,
+              acoach: state.hanashi.acoach,
+              players: state.hanashi.players
+            };
+
+            const res = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) throw new Error('通信エラー');
+            const result = await res.json();
+            if (result.status === 'ok') {
+              showToast('古いデータを削除し、最新メンバーを保存しました！', 'success');
+            } else {
+              throw new Error(result.message || '保存エラー');
+            }
+          } catch (err) {
+            console.error(err);
+            showToast('スプレッドシートへの保存に失敗しました', 'error');
+          }
+        }
+      );
+    }
+
     const API_KEY_STORAGE_NAME = 'minibasket_gemini_api_key_v1';
 
     function getStoredApiKey() {
@@ -839,7 +1147,11 @@
       loadFromLocalStorage();
       sortTeamPlayers('hanashi');
       updateApiKeyStatusUI();
+      updateGasStatusUI();
       renderAll();
+      if (getStoredGasUrl()) {
+        syncFromSpreadsheet(true);
+      }
     });
 
     function saveToLocalStorage() {
@@ -1282,7 +1594,10 @@ const parsed = JSON.parse(rawText);
               <span class="text-slate-400 w-7">${p.grade ? p.grade + '年' : '-'}</span>
               <span class="font-bold text-slate-800">${p.name}</span>
             </label>
-            <button onclick="removePlayer('hanashi', ${idx})" class="text-slate-400 hover:text-red-500 px-1.5 py-0.5">✕</button>
+            <div class="flex items-center gap-1 shrink-0">
+              <button onclick="openEditPlayerModal('hanashi', ${idx})" class="text-slate-500 hover:text-orange-600 bg-slate-100 hover:bg-orange-50 px-2 py-0.5 rounded text-[11px] font-bold">✏️編集</button>
+              <button onclick="removePlayer('hanashi', ${idx})" class="text-slate-400 hover:text-red-500 px-1.5 py-0.5">✕</button>
+            </div>
           </div>
         `;
       }).join('');
@@ -1302,7 +1617,10 @@ const parsed = JSON.parse(rawText);
                 <span class="text-slate-400 w-7">${p.grade ? p.grade + '年' : '-'}</span>
                 <span class="font-bold text-slate-800">${p.name}</span>
               </label>
-              <button onclick="removePlayer('opponent', ${idx})" class="text-slate-400 hover:text-red-500 px-1.5 py-0.5">✕</button>
+              <div class="flex items-center gap-1 shrink-0">
+                <button onclick="openEditPlayerModal('opponent', ${idx})" class="text-slate-500 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 px-2 py-0.5 rounded text-[11px] font-bold">✏️編集</button>
+                <button onclick="removePlayer('opponent', ${idx})" class="text-slate-400 hover:text-red-500 px-1.5 py-0.5">✕</button>
+              </div>
             </div>
           `;
         }).join('');
