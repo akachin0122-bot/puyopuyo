@@ -804,8 +804,7 @@
     function getEffectiveNumber(player) {
       if (!player) return '';
       if (state.numberMode === 'official') {
-        const off = String(player.officialNumber ?? '').trim();
-        return off !== '' ? off : String(player.number ?? '').trim();
+        return String(player.officialNumber ?? '').trim();
       }
       return String(player.number ?? '').trim();
     }
@@ -819,7 +818,7 @@
       renderAll();
       showToast(
         mode === 'official'
-          ? '「🏆 公式戦番号」モードに切り替えました（未設定の選手は通常番号を表示）'
+          ? '「🏆 公式戦番号」モードに切り替えました'
           : '「🏀 練習試合番号」モードに切り替えました',
         'success'
       );
@@ -989,6 +988,12 @@
         const data = await res.json();
 
         if (data && Array.isArray(data.players)) {
+          const sheetMode = String(data.numberMode ?? data.mode ?? '').trim().toLowerCase();
+          if (sheetMode === 'official' || sheetMode === '公式戦') {
+            state.numberMode = 'official';
+          } else if (sheetMode === 'practice' || sheetMode === '練習試合') {
+            state.numberMode = 'practice';
+          }
           if (data.coach !== undefined) {
             state.hanashi.coach = data.coach;
             document.getElementById('hanashi-coach').value = data.coach;
@@ -1048,17 +1053,27 @@
         async () => {
           showToast('スプレッドシートを更新中...', 'info');
           try {
+            const isOfficialSave = state.numberMode === 'official';
             const payload = {
               action: 'overwrite_master',
+              numberMode: state.numberMode,
               coach: state.hanashi.coach,
               acoach: state.hanashi.acoach,
-              players: state.hanashi.players.map(p => ({
-                number: String(p.number || '').trim(),
-                officialNumber: String(p.officialNumber || '').trim(),
-                grade: String(p.grade || '').trim(),
-                name: String(p.name || '').trim(),
-                active: p.active !== false
-              }))
+              players: state.hanashi.players.map(p => {
+                const baseNum = String(p.number || '').trim();
+                const curOff = String(p.officialNumber || '').trim();
+                const outOff = isOfficialSave ? (curOff !== '' ? curOff : baseNum) : curOff;
+                if (isOfficialSave && outOff !== '') {
+                  p.officialNumber = outOff;
+                }
+                return {
+                  number: baseNum,
+                  officialNumber: outOff,
+                  grade: String(p.grade || '').trim(),
+                  name: String(p.name || '').trim(),
+                  active: p.active !== false
+                };
+              })
             };
 
             const res = await fetch(url, {
@@ -1070,7 +1085,14 @@
             if (!res.ok) throw new Error('通信エラー');
             const result = await res.json();
             if (result.status === 'ok') {
-              showToast('古いデータを削除し、最新メンバーを保存しました！', 'success');
+              saveToLocalStorage();
+              renderAll();
+              showToast(
+                isOfficialSave
+                  ? '公式戦番号（F列）を更新して保存しました！'
+                  : '古いデータを削除し、最新メンバーを保存しました！',
+                'success'
+              );
             } else {
               throw new Error(result.message || '保存エラー');
             }
@@ -1393,7 +1415,14 @@ function switchTab(tabName) {
         const gA = Number(a.grade) || 0;
         const gB = Number(b.grade) || 0;
         if (gA !== gB) return gB - gA; // 学年降順 (6年 -> 1年)
-        return Number(getEffectiveNumber(a)) - Number(getEffectiveNumber(b)); // 背番号昇順
+        const nA = Number(getEffectiveNumber(a));
+        const nB = Number(getEffectiveNumber(b));
+        const validA = getEffectiveNumber(a) !== '' && !Number.isNaN(nA);
+        const validB = getEffectiveNumber(b) !== '' && !Number.isNaN(nB);
+        if (validA && validB) return nA - nB;
+        if (validA) return -1;
+        if (validB) return 1;
+        return Number(a.number) - Number(b.number);
       });
     }
 
@@ -1689,19 +1718,21 @@ const parsed = JSON.parse(rawText);
       const hList = document.getElementById('hanashi-player-list');
       hList.innerHTML = state.hanashi.players.map((p, idx) => {
         const isActive = p.active !== false;
-        const dispNum = getEffectiveNumber(p);
-        const hasOff = String(p.officialNumber ?? '').trim() !== '';
-        const badgeHtml = state.numberMode === 'official'
+        const rawOff = String(p.officialNumber ?? '').trim();
+        const hasOff = rawOff !== '';
+        const isOfficialMode = state.numberMode === 'official';
+        const dispNum = isOfficialMode ? (hasOff ? `#${rawOff}` : '未定') : `#${String(p.number ?? '').trim()}`;
+        const badgeHtml = isOfficialMode
           ? (hasOff
-              ? `<span class="text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.2 rounded">公式(通常#${p.number})</span>`
-              : `<span class="text-[10px] text-slate-400">(通常)</span>`)
-          : (hasOff ? `<span class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded">公式#${p.officialNumber}</span>` : '');
+              ? `<span class="text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.2 rounded">公式戦番号（通常#${p.number}）</span>`
+              : `<span class="text-[10px] text-slate-400">公式未登録（通常#${p.number}）</span>`)
+          : (hasOff ? `<span class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded">公式#${rawOff}</span>` : '');
         return `
           <div class="flex items-center justify-between px-3 py-1.5 text-xs ${isActive ? 'hover:bg-slate-50' : 'bg-slate-50 opacity-50'}">
             <label class="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
               <input type="checkbox" ${isActive ? 'checked' : ''} onchange="togglePlayerRosterActive('hanashi', ${idx})"
                 class="w-4 h-4 rounded accent-orange-500 cursor-pointer shrink-0" />
-              <span class="w-8 text-center font-black ${state.numberMode === 'official' && hasOff ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-slate-100 text-slate-800'} py-0.5 rounded shrink-0">#${dispNum}</span>
+              <span class="min-w-[2.2rem] px-1 text-center font-black ${isOfficialMode && hasOff ? 'bg-amber-100 text-amber-900 border border-amber-300' : (isOfficialMode ? 'bg-slate-100 text-slate-400' : 'bg-slate-100 text-slate-800')} py-0.5 rounded shrink-0">${dispNum}</span>
               <span class="text-slate-400 w-7 shrink-0">${p.grade ? p.grade + '年' : '-'}</span>
               <span class="font-bold text-slate-800 truncate">${p.name}</span>
               ${badgeHtml}
@@ -1720,13 +1751,16 @@ const parsed = JSON.parse(rawText);
       } else {
         oList.innerHTML = state.opponent.players.map((p, idx) => {
           const isActive = p.active !== false;
-          const dispNum = getEffectiveNumber(p);
+          const rawOff = String(p.officialNumber ?? '').trim();
+          const hasOff = rawOff !== '';
+          const isOfficialMode = state.numberMode === 'official';
+          const dispNum = isOfficialMode ? (hasOff ? `#${rawOff}` : `#${String(p.number ?? '').trim()}`) : `#${String(p.number ?? '').trim()}`;
           return `
             <div class="flex items-center justify-between px-3 py-1.5 text-xs ${isActive ? 'hover:bg-slate-50' : 'bg-slate-50 opacity-50'}">
               <label class="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
                 <input type="checkbox" ${isActive ? 'checked' : ''} onchange="togglePlayerRosterActive('opponent', ${idx})"
                   class="w-4 h-4 rounded accent-blue-600 cursor-pointer shrink-0" />
-                <span class="w-8 text-center font-black bg-blue-50 text-blue-800 py-0.5 rounded shrink-0">#${dispNum}</span>
+                <span class="w-8 text-center font-black bg-blue-50 text-blue-800 py-0.5 rounded shrink-0">${dispNum}</span>
                 <span class="text-slate-400 w-7 shrink-0">${p.grade ? p.grade + '年' : '-'}</span>
                 <span class="font-bold text-slate-800 truncate">${p.name}</span>
               </label>
