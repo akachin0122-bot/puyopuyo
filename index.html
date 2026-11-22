@@ -315,25 +315,17 @@
             </div>
           </div>
           <!-- スプレッドシート共有バー -->
-          <div class="mt-2.5 p-2.5 bg-emerald-50/80 border border-emerald-200 rounded-xl flex flex-wrap items-center justify-between gap-2">
+          <div class="mt-2.5 p-2.5 bg-emerald-50/80 border border-emerald-200 rounded-xl flex items-center justify-between gap-2">
             <div class="flex items-center gap-1.5">
               <span class="text-sm">📊</span>
               <div>
                 <div class="text-[11px] font-bold text-emerald-900">スプレッドシート共有</div>
-                <div id="gas-status-text" class="text-[10px] text-emerald-700">URL未設定（この端末のみ保存）</div>
+                <div class="text-[10px] text-emerald-700">起動時に自動読込・変更時は上書き保存</div>
               </div>
             </div>
-            <div class="flex items-center gap-1.5">
-              <button onclick="openGasModal()" class="px-2 py-1.5 bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-[11px] font-bold">
-                ⚙️ URL設定
-              </button>
-              <button onclick="syncFromSpreadsheet(false)" class="px-2.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-lg text-[11px] font-bold shadow-xs">
-                ⬇️ 読込
-              </button>
-              <button onclick="syncToSpreadsheet()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 text-white rounded-lg text-[11px] font-bold shadow-xs">
-                ⬆️ 上書き保存
-              </button>
-            </div>
+            <button onclick="syncToSpreadsheet()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-lg text-xs font-bold shadow-xs shrink-0">
+              ⬆️ 上書き保存
+            </button>
           </div>
 
      <!-- 選手追加フォーム -->
