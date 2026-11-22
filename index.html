@@ -807,8 +807,12 @@
     let editingPlayerTarget = 'hanashi';
     let editingPlayerIndex = -1;
 
-    function getEffectiveNumber(player) {
+    function getEffectiveNumber(player, target = null) {
       if (!player) return '';
+      // 相手の背番号は常に読み取った/入力した背番号（p.number）をそのまま使用し、公式戦番号モードの影響を受けない
+      if (target === 'opponent') {
+        return String(player.number ?? '').trim();
+      }
       if (state.numberMode === 'official') {
         return String(player.officialNumber ?? '').trim();
       }
@@ -819,7 +823,6 @@
       if (mode !== 'practice' && mode !== 'official') return;
       state.numberMode = mode;
       sortTeamPlayers('hanashi');
-      sortTeamPlayers('opponent');
       saveToLocalStorage();
       renderAll();
       showToast(
@@ -836,7 +839,6 @@
         '登録されている全選手の「公式戦番号」をクリアして「未設定」にしますか？（練習試合番号は保持されます）',
         () => {
           state.hanashi.players.forEach(p => { p.officialNumber = ''; });
-          state.opponent.players.forEach(p => { p.officialNumber = ''; });
           saveToLocalStorage();
           renderAll();
           showToast('全選手の公式戦番号をクリアしました', 'success');
@@ -849,20 +851,27 @@
       if (!p) return;
       editingPlayerTarget = target;
       editingPlayerIndex = idx;
-      const isOfficial = state.numberMode === 'official';
-      document.getElementById('edit-player-mode-badge').textContent = isOfficial
-        ? '🏆 公式戦用の背番号を編集（空欄＝未設定、通常番号は保持されます）'
-        : '🏀 練習試合用の背番号を編集';
-      document.getElementById('edit-player-mode-badge').className = isOfficial
-        ? 'text-[11px] font-bold text-amber-600'
-        : 'text-[11px] font-bold text-orange-600';
-      const offVal = (p.officialNumber !== undefined && String(p.officialNumber).trim() !== '') ? String(p.officialNumber).trim() : '';
-      document.getElementById('edit-player-num').value = isOfficial
-        ? offVal
-        : String(p.number || '').trim();
-      document.getElementById('edit-player-num').placeholder = isOfficial
-        ? '公式戦番号（未設定なら空欄のまま）'
-        : '背番号';
+      const isOfficial = (target === 'hanashi') && (state.numberMode === 'official');
+      if (target === 'opponent') {
+        document.getElementById('edit-player-mode-badge').textContent = '📷 相手チーム（読取・入力された背番号）';
+        document.getElementById('edit-player-mode-badge').className = 'text-[11px] font-bold text-blue-600';
+        document.getElementById('edit-player-num').value = String(p.number || '').trim();
+        document.getElementById('edit-player-num').placeholder = '背番号';
+      } else {
+        document.getElementById('edit-player-mode-badge').textContent = isOfficial
+          ? '🏆 公式戦用の背番号を編集（空欄＝未設定、通常番号は保持されます）'
+          : '🏀 練習試合用の背番号を編集';
+        document.getElementById('edit-player-mode-badge').className = isOfficial
+          ? 'text-[11px] font-bold text-amber-600'
+          : 'text-[11px] font-bold text-orange-600';
+        const offVal = (p.officialNumber !== undefined && String(p.officialNumber).trim() !== '') ? String(p.officialNumber).trim() : '';
+        document.getElementById('edit-player-num').value = isOfficial
+          ? offVal
+          : String(p.number || '').trim();
+        document.getElementById('edit-player-num').placeholder = isOfficial
+          ? '公式戦番号（未設定なら空欄のまま）'
+          : '背番号';
+      }
       document.getElementById('edit-player-grade').value = p.grade || '';
       document.getElementById('edit-player-name').value = p.name || '';
       document.getElementById('edit-player-modal').classList.remove('hidden');
@@ -877,7 +886,7 @@
       if (editingPlayerIndex < 0) return;
       const team = state[editingPlayerTarget];
       const targetPlayer = team.players[editingPlayerIndex];
-      const isOfficial = state.numberMode === 'official';
+      const isOfficial = (editingPlayerTarget === 'hanashi') && (state.numberMode === 'official');
       const num = document.getElementById('edit-player-num').value.trim();
       const grade = document.getElementById('edit-player-grade').value.trim();
       const name = document.getElementById('edit-player-name').value.trim();
@@ -886,17 +895,19 @@
         showToast('背番号と選手氏名を入力してください', 'error');
         return;
       }
-      const oldEffectiveNum = getEffectiveNumber(targetPlayer);
+      const oldEffectiveNum = getEffectiveNumber(targetPlayer, editingPlayerTarget);
 
       if (num !== '') {
-        const duplicate = team.players.some((p, i) => i !== editingPlayerIndex && getEffectiveNumber(p) === num);
+        const duplicate = team.players.some((p, i) => i !== editingPlayerIndex && getEffectiveNumber(p, editingPlayerTarget) === num);
         if (duplicate) {
           showToast(`背番号 #${num} は他の選手と重複しています`, 'error');
           return;
         }
       }
 
-      if (isOfficial) {
+      if (editingPlayerTarget === 'opponent') {
+        targetPlayer.number = num;
+      } else if (isOfficial) {
         targetPlayer.officialNumber = num;
       } else {
         targetPlayer.number = num;
@@ -904,7 +915,7 @@
       targetPlayer.grade = grade;
       targetPlayer.name = name;
 
-      const newEffectiveNum = getEffectiveNumber(targetPlayer);
+      const newEffectiveNum = getEffectiveNumber(targetPlayer, editingPlayerTarget);
 
       if (oldEffectiveNum !== newEffectiveNum) {
         const side = (editingPlayerTarget === 'hanashi')
@@ -1440,10 +1451,10 @@ function switchTab(tabName) {
         const gA = Number(a.grade) || 0;
         const gB = Number(b.grade) || 0;
         if (gA !== gB) return gB - gA; // 学年降順 (6年 -> 1年)
-        const nA = Number(getEffectiveNumber(a));
-        const nB = Number(getEffectiveNumber(b));
-        const validA = getEffectiveNumber(a) !== '' && !Number.isNaN(nA);
-        const validB = getEffectiveNumber(b) !== '' && !Number.isNaN(nB);
+        const nA = Number(getEffectiveNumber(a, target));
+        const nB = Number(getEffectiveNumber(b, target));
+        const validA = getEffectiveNumber(a, target) !== '' && !Number.isNaN(nA);
+        const validB = getEffectiveNumber(b, target) !== '' && !Number.isNaN(nB);
         if (validA && validB) return nA - nB;
         if (validA) return -1;
         if (validB) return 1;
@@ -1507,10 +1518,9 @@ function switchTab(tabName) {
           const name = playerMatch[2].trim();
           const grade = playerMatch[3];
 
-          if (!state.opponent.players.some(p => p.number === num)) {
+          if (!state.opponent.players.some(p => String(p.number) === num)) {
             state.opponent.players.push({
               number: num,
-              officialNumber: state.numberMode === 'official' ? num : '',
               grade,
               name,
               active: true
@@ -1775,10 +1785,8 @@ const parsed = JSON.parse(rawText);
       } else {
         oList.innerHTML = state.opponent.players.map((p, idx) => {
           const isActive = p.active !== false;
-          const rawOff = String(p.officialNumber ?? '').trim();
-          const hasOff = rawOff !== '';
-          const isOfficialMode = state.numberMode === 'official';
-          const dispNum = isOfficialMode ? (hasOff ? `#${rawOff}` : '未設定') : `#${String(p.number ?? '').trim()}`;
+          const oppNumStr = String(p.number ?? '').trim();
+          const dispNum = oppNumStr ? `#${oppNumStr}` : '未設定';
           return `
             <div class="flex items-center justify-between px-3 py-1.5 text-xs ${isActive ? 'hover:bg-slate-50' : 'bg-slate-50 opacity-50'}">
               <label class="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
@@ -1975,8 +1983,9 @@ const parsed = JSON.parse(rawText);
         return;
       }
 
+      const targetKey = isHanashiSide(side) ? 'hanashi' : 'opponent';
       grid.innerHTML = benchPlayers.map(p => {
-        const effNum = getEffectiveNumber(p);
+        const effNum = getEffectiveNumber(p, targetKey);
         const isOn = courtArr.includes(effNum);
         const fouls = state.events.filter(e => e.type === 'foul' && e.side === side && e.number === effNum).length;
         const playedQs = [1, 2, 3, 4].filter(qn => state.participation[side][qn][effNum]);
@@ -2256,10 +2265,11 @@ function openTimeoutModal(side) {
         document.getElementById(`court-${side}-badge`).textContent = `${activeNums.length}/5人`;
 
         const container = document.getElementById(`court-${side}-players`);
+        const targetKey = isHanashi ? 'hanashi' : 'opponent';
         const activePlayers = activeNums
           .map(num => {
-            const found = team.players.find(p => getEffectiveNumber(p) === num || p.number === num);
-            return found ? { ...found, _dispNum: getEffectiveNumber(found) } : null;
+            const found = team.players.find(p => getEffectiveNumber(p, targetKey) === num || p.number === num);
+            return found ? { ...found, _dispNum: getEffectiveNumber(found, targetKey) } : null;
           })
           .filter(Boolean);
 
@@ -2375,6 +2385,7 @@ function renderScoresheetTab() {
           return `<span class="${colorCls} font-bold">${toEvs.map(e => e.minuteLabel || '○').join(',')}</span>`;
         });
 
+        const targetKey = isHanashiSide(side) ? 'hanashi' : 'opponent';
         // スコアシート出力時も確実に学年順（6年→1年、同学年は背番号順）にソートして描画
         const benchPlayers = team.players
           .filter(p => p.active !== false)
@@ -2382,7 +2393,7 @@ function renderScoresheetTab() {
             const gA = Number(a.grade) || 0;
             const gB = Number(b.grade) || 0;
             if (gA !== gB) return gB - gA;
-            return Number(getEffectiveNumber(a)) - Number(getEffectiveNumber(b));
+            return Number(getEffectiveNumber(a, targetKey)) - Number(getEffectiveNumber(b, targetKey));
           });
 
         let rowsHTML = '';
@@ -2400,7 +2411,7 @@ function renderScoresheetTab() {
             continue;
           }
 
-          const sheetNum = getEffectiveNumber(p);
+          const sheetNum = getEffectiveNumber(p, targetKey);
           const qCells = [1, 2, 3, 4].map(qn => {
             const pType = state.participation[side][qn][sheetNum];
             if (!pType) return `<td></td>`;
