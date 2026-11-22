@@ -1,0 +1,2541 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ミニバス デジタルスコアシート（葉梨）</title>
+ <link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="app_icon.png">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', 'Noto Sans JP', sans-serif;
+      background-color: #f1f5f9;
+      color: #0f172a;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* 公式スコアシート用スタイル（A4縦1枚に完全収まる厳格レイアウト） */
+    .scoresheet-wrapper {
+      overflow-x: auto;
+      padding-bottom: 16px;
+    }
+    .scoresheet-paper {
+      width: 794px;
+      height: 1122px;
+      background: #ffffff;
+      margin: 0 auto;
+      padding: 10px 14px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
+      border: 1px solid #cbd5e1;
+      color: #111827;
+      font-family: 'Noto Sans JP', sans-serif;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .sheet-table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    .sheet-table th, .sheet-table td {
+      border: 1px solid #1e293b;
+      padding: 0 1px;
+      text-align: center;
+      font-size: 9px;
+      line-height: 1.1;
+      height: 15px;
+    }
+    .sheet-table th {
+      background-color: #f1f5f9;
+      font-weight: 700;
+    }
+
+    /* 出場時限の斜線描画 */
+    .slash-start-red {
+      background-image: linear-gradient(to top right, transparent 45%, #dc2626 47%, #dc2626 53%, transparent 55%);
+    }
+    .slash-start-black {
+      background-image: linear-gradient(to top right, transparent 45%, #111827 47%, #111827 53%, transparent 55%);
+    }
+    .slash-sub-red {
+      background-image: linear-gradient(to bottom right, transparent 45%, #dc2626 47%, #dc2626 53%, transparent 55%);
+    }
+    .slash-sub-black {
+      background-image: linear-gradient(to bottom right, transparent 45%, #111827 47%, #111827 53%, transparent 55%);
+    }
+    .slash-cross-red {
+      background-image:
+        linear-gradient(to top right, transparent 45%, #dc2626 47%, #dc2626 53%, transparent 55%),
+        linear-gradient(to bottom right, transparent 45%, #dc2626 47%, #dc2626 53%, transparent 55%);
+    }
+    .slash-cross-black {
+      background-image:
+        linear-gradient(to top right, transparent 45%, #111827 47%, #111827 53%, transparent 55%),
+        linear-gradient(to bottom right, transparent 45%, #111827 47%, #111827 53%, transparent 55%);
+    }
+
+    /* チームファウル ×印 */
+    .tf-cross-red {
+      color: #dc2626;
+      font-weight: 900;
+      font-size: 12px !important;
+    }
+    .tf-cross-black {
+      color: #111827;
+      font-weight: 900;
+      font-size: 12px !important;
+    }
+
+    /* ランニングスコア用 */
+    .rs-table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    .rs-table th, .rs-table td {
+      border: 1px solid #1e293b;
+      padding: 0;
+      text-align: center;
+      font-size: 8.5px;
+      height: 15.5px;
+      position: relative;
+    }
+    .rs-slash-red {
+      background-image: linear-gradient(to top right, transparent 44%, #dc2626 46%, #dc2626 54%, transparent 56%);
+    }
+    .rs-slash-black {
+      background-image: linear-gradient(to top right, transparent 44%, #111827 46%, #111827 54%, transparent 56%);
+    }
+    .rs-circle-red {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 13px;
+      height: 13px;
+      border: 1.5px solid #dc2626;
+      border-radius: 9999px;
+      color: #dc2626;
+      font-weight: 700;
+    }
+    .rs-circle-black {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 13px;
+      height: 13px;
+      border: 1.5px solid #111827;
+      border-radius: 9999px;
+      color: #111827;
+      font-weight: 700;
+    }
+    .rs-ft-dot-red::after {
+      content: "●";
+      color: #dc2626;
+      font-size: 8px;
+    }
+    .rs-ft-dot-black::after {
+      content: "●";
+      color: #111827;
+      font-size: 8px;
+    }
+    .rs-q-end-border {
+      border-bottom: 2px solid #0f172a !important;
+    }
+
+    .text-q-red { color: #dc2626; }
+    .text-q-black { color: #111827; }
+
+    /* 厳格なA4縦1枚印刷用設定 */
+    @media print {
+      body {
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .scoresheet-wrapper {
+        overflow: visible !important;
+        padding: 0 !important;
+      }
+      .scoresheet-paper {
+        box-shadow: none !important;
+        border: none !important;
+        width: 210mm !important;
+        height: 297mm !important;
+        max-width: 210mm !important;
+        max-height: 297mm !important;
+        padding: 4mm 6mm !important;
+        margin: 0 auto !important;
+        page-break-after: avoid;
+        page-break-inside: avoid;
+      }
+      @page {
+        size: A4 portrait;
+        margin: 0mm;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- トップヘッダー＆タブナビゲーション -->
+  <header class="no-print bg-slate-900 text-white sticky top-0 z-40 shadow-md">
+    <div class="max-w-5xl mx-auto px-3 py-2 flex items-center justify-between gap-2">
+      <div class="flex items-center gap-1.5 shrink-0">
+        <span class="bg-orange-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded tracking-wider">MINI-BASKET</span>
+        <h1 class="font-bold text-sm sm:text-base tracking-tight hidden sm:block">デジタルスコアシート</h1>
+      </div>
+
+      <!-- メインタブ -->
+      <nav class="flex bg-slate-800 p-0.5 rounded-xl flex-1 sm:flex-none justify-between gap-1">
+        <button onclick="switchTab('setup')" id="tab-btn-setup"
+          class="flex-1 sm:flex-none px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-orange-500 text-white shadow">
+          1. チーム・読取
+        </button>
+        <button onclick="switchTab('game')" id="tab-btn-game"
+          class="flex-1 sm:flex-none px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-300 hover:text-white">
+          2. 試合入力
+        </button>
+        <button onclick="switchTab('sheet')" id="tab-btn-sheet"
+          class="flex-1 sm:flex-none px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-300 hover:text-white">
+          3. スコア表出力
+        </button>
+      </nav>
+
+      <!-- APIキー設定ボタン -->
+      <button onclick="openApiKeyModal()" id="header-apikey-btn"
+        class="px-2.5 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-1 shrink-0 bg-slate-800 border-slate-600 text-slate-200 hover:bg-slate-700"
+        title="Gemini APIキーの設定">
+        <span>🔑</span>
+        <span id="header-apikey-status" class="hidden sm:inline">APIキー</span>
+      </button>
+    </div>
+  </header>
+  <!-- トースト通知 -->
+  <div id="toast-container" class="no-print fixed top-14 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-1.5 pointer-events-none w-full max-w-sm px-3"></div>
+
+  <!-- メインコンテンツ領域 -->
+  <main class="flex-1 max-w-5xl w-full mx-auto px-2.5 sm:px-4 py-2.5 sm:py-4 flex flex-col">
+
+    <!-- =========================================================
+         TAB 1: チーム設定・マスタ管理・画像OCR読み取り
+    ========================================================= -->
+    <section id="tab-setup" class="space-y-4">
+
+      <!-- 試合基本情報＆白/青切り替えカード -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-100">
+          <div>
+            <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+              <span class="w-1.5 h-5 bg-orange-500 rounded-full inline-block"></span>
+              試合情報・ベンチ色（白 / 青）設定
+            </h2>
+            <p class="text-xs text-slate-500 mt-0.5">葉梨のユニフォーム色（上段：白 ／ 下段：青）をワンタッチで切り替えられます</p>
+          </div>
+
+          <!-- 白 / 青 ワンタッチ切替トグル -->
+          <div class="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 self-start sm:self-auto">
+            <button onclick="setHanashiColor('white')" id="btn-color-white"
+              class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-slate-900 shadow-sm border border-slate-300">
+              <span class="w-3 h-3 rounded-full bg-white border-2 border-slate-800 inline-block"></span>
+              葉梨：白（上段）
+            </button>
+            <button onclick="setHanashiColor('blue')" id="btn-color-blue"
+              class="px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900">
+              <span class="w-3 h-3 rounded-full bg-blue-600 inline-block"></span>
+              葉梨：青（下段）
+            </button>
+          </div>
+        </div>
+
+        <!-- 試合メタデータ入力 -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mt-3.5">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">大会名</label>
+            <input type="text" id="meta-tournament" value="練習試合" oninput="updateMeta()"
+              class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-orange-500 outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">日付</label>
+            <input type="date" id="meta-date" oninput="updateMeta()"
+              class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-orange-500 outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">会場</label>
+            <input type="text" id="meta-venue" value="六東" placeholder="例：葉梨小体育館" oninput="updateMeta()"
+              class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-orange-500 outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">時間</label>
+            <input type="time" id="meta-time" oninput="updateMeta()"
+              class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm focus:ring-2 focus:ring-orange-500 outline-none" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 2カラム：自チーム（葉梨マスタ） & 相手チーム（カメラ・写真一覧OCR） -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        <!-- 左：自チーム（葉梨）マスタ -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col">
+          <div class="flex items-center justify-between gap-2 pb-3 border-b border-slate-100">
+            <div>
+              <div class="flex items-center gap-2">
+                <span id="hanashi-badge" class="px-2 py-0.5 text-xs font-bold rounded bg-slate-100 text-slate-800 border border-slate-300">白（上段）</span>
+                <h3 class="font-bold text-sm sm:text-base text-slate-800">自チーム：葉梨（マスタ登録済）</h3>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-0.5">チェックを入れた選手が試合ベンチ入りメンバーになります</p>
+            </div>
+            <button onclick="resetHanashiMaster()" class="text-xs text-slate-500 hover:text-orange-600 underline shrink-0">
+              初期値に戻す
+            </button>
+          </div>
+
+          <!-- コーチ情報 -->
+          <div class="grid grid-cols-2 gap-2 mt-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-500">コーチ</label>
+              <input type="text" id="hanashi-coach" value="青島 一月" oninput="updateTeamCoach('hanashi')"
+                class="w-full mt-0.5 px-2 py-1 text-xs bg-white border border-slate-300 rounded-lg" />
+            </div>
+            <div>
+              <label class="block text-[11px] font-bold text-slate-500">A.コーチ</label>
+              <input type="text" id="hanashi-acoach" value="喜納 広志、杉山 舞美" oninput="updateTeamCoach('hanashi')"
+                class="w-full mt-0.5 px-2 py-1 text-xs bg-white border border-slate-300 rounded-lg" />
+            </div>
+          </div>
+          <!-- スプレッドシート共有バー -->
+          <div class="mt-2.5 p-2.5 bg-emerald-50/80 border border-emerald-200 rounded-xl flex items-center justify-between gap-2">
+            <div class="flex items-center gap-1.5">
+              <span class="text-sm">📊</span>
+              <div>
+                <div class="text-[11px] font-bold text-emerald-900">スプレッドシート共有</div>
+                <div class="text-[10px] text-emerald-700">起動時に自動読込・変更時は上書き保存</div>
+              </div>
+            </div>
+            <button onclick="syncToSpreadsheet()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-lg text-xs font-bold shadow-xs shrink-0">
+              ⬆️ 上書き保存
+            </button>
+          </div>
+
+     <!-- 選手追加フォーム -->
+          <div class="flex gap-1.5 mt-3">
+            <input type="number" id="hanashi-add-num" placeholder="背番号" class="w-16 px-2 py-1.5 text-xs border border-slate-300 rounded-lg" />
+            <input type="number" id="hanashi-add-grade" placeholder="学年" min="1" max="6" class="w-14 px-2 py-1.5 text-xs border border-slate-300 rounded-lg" />
+            <input type="text" id="hanashi-add-name" placeholder="選手氏名" class="flex-1 px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg" />
+            <button onclick="addPlayer('hanashi')" class="px-3 py-1.5 bg-slate-800 text-white text-xs font-bold rounded-lg hover:bg-slate-700 shrink-0">
+              +追加
+            </button>
+          </div>
+
+          <!-- 葉梨選手一覧 -->
+          <div class="mt-3 max-h-[340px] overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100" id="hanashi-player-list"></div>
+        </div>
+
+        <!-- 右：相手チーム（カメラ撮影・写真一覧からOCR読取） -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col">
+          <div class="flex items-center justify-between gap-2 pb-3 border-b border-slate-100">
+            <div>
+              <div class="flex items-center gap-2">
+                <span id="opponent-badge" class="px-2 py-0.5 text-xs font-bold rounded bg-blue-600 text-white">青（下段）</span>
+                <h3 class="font-bold text-sm sm:text-base text-slate-800">相手チーム登録</h3>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-0.5">紙のメンバー表をカメラ撮影 or テキスト一括貼り付け</p>
+            </div>
+          </div>
+
+          <!-- カメラ / 写真一覧 選択エリア -->
+          <div class="mt-3 p-3 bg-gradient-to-br from-orange-50 to-amber-50 border-2 border-dashed border-orange-300 rounded-xl">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-2.5">
+              <div class="text-center sm:text-left">
+                <p class="text-xs font-bold text-orange-900">📷 メンバー表の写真から自動入力（AI-OCR）</p>
+                <p class="text-[11px] text-orange-700 mt-0.5">「カメラ撮影」も「写真一覧（アルバム）から選択」もOK！</p>
+              </div>
+              <label class="cursor-pointer px-3.5 py-2 bg-orange-500 hover:bg-orange-600 active:scale-95 transition text-white text-xs font-bold rounded-xl shadow-sm flex items-center gap-1.5 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span>写真を選択 / 撮影</span>
+                <input type="file" id="ocr-file-input" accept="image/*" class="hidden" onchange="handleOpponentImageUpload(event)" />
+              </label>
+            </div>
+
+            <!-- APIキー未設定時の案内バー -->
+            <div id="ocr-apikey-warning" class="mt-2.5 pt-2 border-t border-orange-200 flex items-center justify-between gap-2 text-[11px]">
+              <span class="text-amber-800 font-bold">⚠️ AI読取を使うには最初に1回だけAPIキー登録が必要です</span>
+              <button onclick="openApiKeyModal()" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-lg shrink-0">
+                🔑 キーを設定する
+              </button>
+            </div>
+
+            <!-- OCRローディング表示 -->
+            <div id="ocr-loading" class="hidden mt-2.5 pt-2.5 border-t border-orange-200 flex items-center justify-center gap-2 text-orange-800 text-xs font-bold">
+              <svg class="animate-spin h-4 w-4 text-orange-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>AIがメンバー表から背番号・氏名・学年を読み取っています...</span>
+            </div>
+          </div>
+
+          <!-- 相手チーム名＆コーチ入力 -->
+          <div class="mt-3 space-y-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-500">相手チーム名</label>
+              <input type="text" id="opponent-name" value="" placeholder="チーム名を入力" oninput="updateOpponentName()"
+                class="w-full mt-0.5 px-2.5 py-1 text-xs font-bold bg-white border border-slate-300 rounded-lg" />
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-500">コーチ</label>
+                <input type="text" id="opponent-coach" value="" oninput="updateTeamCoach('opponent')"
+                  class="w-full mt-0.5 px-2 py-1 text-xs bg-white border border-slate-300 rounded-lg" />
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-500">A.コーチ</label>
+                <input type="text" id="opponent-acoach" value="" oninput="updateTeamCoach('opponent')"
+                  class="w-full mt-0.5 px-2 py-1 text-xs bg-white border border-slate-300 rounded-lg" />
+              </div>
+            </div>
+          </div>
+
+          <!-- 相手選手追加フォーム -->
+          <div class="flex gap-1.5 mt-3">
+            <input type="number" id="opponent-add-num" placeholder="背番号" class="w-16 px-2 py-1.5 text-xs border border-slate-300 rounded-lg" />
+            <input type="number" id="opponent-add-grade" placeholder="学年" min="1" max="6" class="w-14 px-2 py-1.5 text-xs border border-slate-300 rounded-lg" />
+            <input type="text" id="opponent-add-name" placeholder="選手氏名" class="flex-1 px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg" />
+            <button onclick="addPlayer('opponent')" class="px-3 py-1.5 bg-slate-800 text-white text-xs font-bold rounded-lg hover:bg-slate-700 shrink-0">
+              +追加
+            </button>
+          </div>
+
+          <!-- ▼ テキスト一括登録エリア（チーム名・コーチ等も自動読取対応） -->
+          <div class="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+            <p class="text-xs font-bold text-slate-700">📝 テキストからまとめて一括登録（チーム名・コーチも自動反映）</p>
+            <textarea id="bulk-text-input" rows="4" placeholder="ここにメンバー表テキストを貼り付け&#10;例：&#10;チーム：掛川城北バスケットボールクラブ&#10;#1 森田 蒼大 (5年)&#10;コーチ：山崎公美子" class="w-full p-2 text-xs border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-orange-500"></textarea>
+            <button onclick="importPlayersFromText()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold rounded-lg shadow-sm">
+              テキストからチーム・選手をまとめて一括設定
+            </button>
+          </div>
+
+          <!-- 相手選手一覧 -->
+          <div class="mt-3 max-h-[220px] overflow-y-auto border border-slate-200 rounded-xl divide-y divide-slate-100" id="opponent-player-list"></div>
+        </div>
+      </div>
+
+      <!-- 次へ進むボタン -->
+      <div class="flex justify-end">
+        <button onclick="switchTab('game')" class="w-full sm:w-auto px-6 py-3.5 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-2xl shadow-md transition flex items-center justify-center gap-2">
+          <span>準備完了！試合入力画面へ進む</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+        </button>
+      </div>
+    </section>
+
+
+    <!-- =========================================================
+         TAB 2: 試合入力画面
+    ========================================================= -->
+    <section id="tab-game" class="hidden flex-1 flex flex-col justify-between gap-2">
+
+      <div class="bg-slate-900 text-white rounded-2xl p-2.5 shadow-md">
+        <div class="flex items-center justify-between gap-1.5 mb-2">
+          <div class="flex gap-1 bg-slate-800 p-0.5 rounded-xl flex-1">
+            <button onclick="setQuarter(1)" id="q-btn-1" class="flex-1 py-1.5 rounded-lg text-xs font-black transition bg-red-600 text-white">1Q</button>
+            <button onclick="setQuarter(2)" id="q-btn-2" class="flex-1 py-1.5 rounded-lg text-xs font-black transition text-slate-300">2Q</button>
+            <button onclick="setQuarter(3)" id="q-btn-3" class="flex-1 py-1.5 rounded-lg text-xs font-black transition text-slate-300">3Q</button>
+            <button onclick="setQuarter(4)" id="q-btn-4" class="flex-1 py-1.5 rounded-lg text-xs font-black transition text-slate-300">4Q</button>
+            <button onclick="setQuarter(5)" id="q-btn-5" class="flex-1 py-1.5 rounded-lg text-xs font-black transition text-slate-300">OT</button>
+          </div>
+          <button onclick="undoLastAction()" class="px-2.5 py-1.5 bg-slate-700 hover:bg-slate-600 active:scale-95 text-white text-xs font-bold rounded-xl border border-slate-600 shrink-0">
+            ↩ 戻す
+          </button>
+          <button onclick="openHistoryModal()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 shrink-0">
+            📋 履歴・修正
+          </button>
+        </div>
+
+        <div class="grid grid-cols-11 items-center gap-1.5 text-center">
+          <div class="col-span-5 bg-white text-slate-900 rounded-xl px-2 py-1.5 flex items-center justify-between border border-slate-300">
+            <div class="text-left min-w-0">
+              <div class="flex items-center gap-1">
+                <span class="text-[10px] font-black px-1 rounded bg-slate-200 text-slate-800">白</span>
+                <span id="sb-white-name" class="font-bold text-xs truncate">葉梨</span>
+              </div>
+              <div class="text-[10px] text-slate-500 mt-0.5">
+                TF: <span id="sb-white-tf" class="font-black text-slate-900">0</span>/4
+              </div>
+            </div>
+            <div id="sb-white-score" class="text-2xl sm:text-3xl font-black tracking-tight pl-1">0</div>
+          </div>
+
+          <div class="col-span-1 flex flex-col items-center justify-center text-[9px] text-slate-400 font-bold leading-tight" id="sb-q-mini">
+            <span>1Q</span>
+            <span>0-0</span>
+          </div>
+
+          <div class="col-span-5 bg-blue-950 text-white rounded-xl px-2 py-1.5 flex items-center justify-between border border-blue-500">
+            <div id="sb-blue-score" class="text-2xl sm:text-3xl font-black tracking-tight pr-1">0</div>
+            <div class="text-right min-w-0">
+              <div class="flex items-center justify-end gap-1">
+                <span id="sb-blue-name" class="font-bold text-xs truncate">対戦相手</span>
+                <span class="text-[10px] font-black px-1 rounded bg-blue-600 text-white">青</span>
+              </div>
+              <div class="text-[10px] text-blue-200 mt-0.5">
+                TF: <span id="sb-blue-tf" class="font-black text-white">0</span>/4
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-2 flex-1">
+        <div id="panel-white" class="bg-white rounded-2xl border-2 border-slate-300 p-2.5 shadow-sm flex flex-col justify-between transition-colors">
+          <div class="flex items-center justify-between gap-1.5 pb-2 border-b border-slate-100">
+            <div class="flex items-center gap-1.5 min-w-0">
+              <span class="w-2.5 h-2.5 rounded-full bg-white border-2 border-slate-800 shrink-0"></span>
+              <span id="court-white-title" class="font-black text-xs sm:text-sm text-slate-900 truncate">白：葉梨</span>
+              <span id="court-white-badge" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 shrink-0">0/5人</span>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <button onclick="openTimeoutModal('white')" class="px-2 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-bold rounded-lg border border-slate-300">
+                ⏱ TO
+              </button>
+              <button onclick="openLineupModal('white')" class="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white text-[11px] font-bold rounded-lg shadow-sm">
+                👥 メンバー選択 / 交代
+              </button>
+            </div>
+          </div>
+          <div id="court-white-players" class="my-auto py-1"></div>
+        </div>
+
+        <div id="panel-blue" class="bg-blue-50/70 rounded-2xl border-2 border-blue-400 p-2.5 shadow-sm flex flex-col justify-between transition-colors">
+          <div class="flex items-center justify-between gap-1.5 pb-2 border-b border-blue-200/70">
+            <div class="flex items-center gap-1.5 min-w-0">
+              <span class="w-2.5 h-2.5 rounded-full bg-blue-600 shrink-0"></span>
+              <span id="court-blue-title" class="font-black text-xs sm:text-sm text-blue-950 truncate">青：対戦相手</span>
+              <span id="court-blue-badge" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 text-blue-900 shrink-0">0/5人</span>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <button onclick="openTimeoutModal('blue')" class="px-2 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-950 text-[11px] font-bold rounded-lg border border-blue-300">
+                ⏱ TO
+              </button>
+              <button onclick="openLineupModal('blue')" class="px-2.5 py-1.5 bg-blue-700 hover:bg-blue-800 active:scale-95 text-white text-[11px] font-bold rounded-lg shadow-sm">
+                👥 メンバー選択 / 交代
+              </button>
+            </div>
+          </div>
+          <div id="court-blue-players" class="my-auto py-1"></div>
+        </div>
+      </div>
+
+      <div id="action-bar-container" class="bg-white rounded-2xl shadow-md border-2 border-slate-300 p-2.5 sticky bottom-2 z-30 transition-all">
+        <div class="flex items-center justify-between gap-2 mb-2">
+          <div id="input-mode-banner" class="flex items-center gap-1.5 text-xs font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 flex-1">
+            <span>🏀 通常モード：背番号タップで即【+2点】</span>
+          </div>
+          <button id="cancel-mode-btn" onclick="resetInputMode()" class="hidden px-2.5 py-1 bg-slate-800 text-white text-xs font-bold rounded-lg shrink-0">
+            ✕ キャンセル
+          </button>
+          <span id="current-q-ink-indicator" class="text-[10px] font-black px-2 py-1 rounded bg-red-100 text-red-700 shrink-0">
+            1Q：赤ペン
+          </span>
+        </div>
+
+        <div class="grid grid-cols-6 gap-1.5">
+          <button onclick="setInputMode('ft', 1)" id="mode-btn-ft"
+            class="py-2 bg-sky-600 hover:bg-sky-700 active:scale-95 text-white rounded-xl font-black text-xs shadow-sm leading-tight transition">
+            +1点<br><span class="text-[9px] font-normal">FT(1本)</span>
+          </button>
+          <button onclick="setInputMode('foul', 'P')" id="mode-btn-P"
+            class="py-2 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white rounded-xl font-black text-xs shadow-sm leading-tight transition">
+            P<br><span class="text-[9px] font-normal">通常F</span>
+          </button>
+          <button onclick="setInputMode('foul', 'P1')" id="mode-btn-P1"
+            class="py-2 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white rounded-xl font-black text-xs shadow-sm leading-tight transition">
+            P1<br><span class="text-[9px] font-normal">バスカン</span>
+          </button>
+          <button onclick="setInputMode('foul', 'P2')" id="mode-btn-P2"
+            class="py-2 bg-orange-600 hover:bg-orange-700 active:scale-95 text-white rounded-xl font-black text-xs shadow-sm leading-tight transition">
+            P2<br><span class="text-[9px] font-normal">FT2本</span>
+          </button>
+          <button onclick="setInputMode('foul', 'U')" id="mode-btn-U"
+            class="py-2 bg-rose-700 hover:bg-rose-800 active:scale-95 text-white rounded-xl font-black text-xs shadow-sm leading-tight transition">
+            U<br><span class="text-[9px] font-normal">アンスポ</span>
+          </button>
+          <button onclick="setInputMode('foul', 'T')" id="mode-btn-T"
+            class="py-2 bg-purple-700 hover:bg-purple-800 active:scale-95 text-white rounded-xl font-black text-xs shadow-sm leading-tight transition">
+            T<br><span class="text-[9px] font-normal">テクニカル</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =========================================================
+         TAB 3: スコア表出力
+    ========================================================= -->
+    <section id="tab-sheet" class="hidden space-y-4">
+      <div class="no-print bg-white rounded-2xl shadow-sm border border-slate-200 p-3.5 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-sm sm:text-base font-bold text-slate-800">公式スコアシート プレビュー（A4縦1枚）</h2>
+          <p class="text-xs text-slate-500">1Q/3Qは赤字、2Q/4Qは黒字で自動描画されます。</p>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="window.print()" class="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold rounded-xl shadow flex items-center gap-1.5">
+            <span>🖨 印刷 / PDF保存</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="scoresheet-wrapper">
+        <div class="scoresheet-paper" id="scoresheet-render-area"></div>
+      </div>
+    </section>
+
+  </main>
+ <!-- モーダル各種 -->
+  <!-- 選手編集モーダル -->
+  <div id="edit-player-modal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/65 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">✏️</span>
+          <h3 class="font-black text-base text-slate-900">選手情報の編集</h3>
+        </div>
+        <button onclick="closeEditPlayerModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center font-bold">✕</button>
+      </div>
+      <div class="space-y-3">
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">背番号</label>
+            <input type="number" id="edit-player-num" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">学年（1〜6）</label>
+            <input type="number" id="edit-player-grade" min="1" max="6" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">選手氏名</label>
+          <input type="text" id="edit-player-name" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm font-bold focus:ring-2 focus:ring-orange-500 outline-none" />
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeEditPlayerModal()" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">キャンセル</button>
+        <button onclick="saveEditedPlayer()" class="px-5 py-2 rounded-xl text-xs font-bold bg-orange-500 text-white hover:bg-orange-600 shadow">保存する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- スプレッドシート共有モーダル -->
+  <div id="gas-modal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/65 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">📊</span>
+          <h3 class="font-black text-base text-slate-900">スプレッドシート共有設定</h3>
+        </div>
+        <button onclick="closeGasModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center font-bold">✕</button>
+      </div>
+      <div class="space-y-2 text-xs text-slate-600 leading-relaxed">
+        <p>Google Apps Script（GAS）のウェブアプリURLを設定すると、葉梨のメンバーマスタをスプレッドシート経由で全員と共有できます。</p>
+        <p class="text-amber-700 font-bold">※「シートへ上書き保存」を押すと、スプレッドシートの古いデータは消去され、現在の最新メンバー一覧だけが登録されます。</p>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">GAS ウェブアプリURL</label>
+        <input type="url" id="gas-url-input" placeholder="https://script.google.com/macros/s/..."
+          class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-emerald-500 outline-none" />
+      </div>
+      <div class="flex items-center justify-between gap-2 pt-2">
+        <button onclick="clearSavedGasUrl()" class="px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50">URL削除</button>
+        <div class="flex gap-2">
+          <button onclick="closeGasModal()" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">キャンセル</button>
+          <button onclick="saveGasUrlFromModal()" class="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow">保存する</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="apikey-modal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/65 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">🔑</span>
+          <h3 class="font-black text-base text-slate-900">Gemini APIキー設定</h3>
+        </div>
+        <button onclick="closeApiKeyModal()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:text-slate-800 flex items-center justify-center font-bold">✕</button>
+      </div>
+      <div class="space-y-2 text-xs text-slate-600 leading-relaxed">
+        <p>紙のメンバー表を写真から自動読み取り（AI-OCR）するために使用する <strong>Gemini APIキー</strong> を入力してください。</p>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-700 mb-1">APIキー</label>
+        <div class="relative flex items-center">
+          <input type="password" id="apikey-input" placeholder="ここにAPIキーを貼り付け"
+            class="w-full pl-3 pr-16 py-2.5 rounded-xl border border-slate-300 text-xs font-mono focus:ring-2 focus:ring-orange-500 outline-none" />
+          <button type="button" onclick="toggleApiKeyVisibility()" id="apikey-toggle-vis"
+            class="absolute right-2 px-2 py-1 text-[11px] font-bold text-slate-500 hover:text-slate-800 bg-slate-100 rounded-lg">
+            表示
+          </button>
+        </div>
+      </div>
+      <div class="flex items-center justify-between gap-2 pt-2">
+        <button onclick="clearSavedApiKey()" class="px-3 py-2 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50">キーを削除</button>
+        <div class="flex gap-2">
+          <button onclick="closeApiKeyModal()" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">キャンセル</button>
+          <button onclick="saveApiKeyFromModal()" class="px-5 py-2 rounded-xl text-xs font-bold bg-orange-500 text-white hover:bg-orange-600 shadow">保存する</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="lineup-modal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/65 flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white rounded-t-3xl sm:rounded-2xl max-w-lg w-full max-h-[88vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="px-4 py-3.5 bg-slate-900 text-white flex items-center justify-between">
+        <div>
+          <span id="lm-subtitle" class="text-[11px] font-bold text-orange-400">1Q 出場メンバー設定</span>
+          <h3 id="lm-title" class="font-black text-base">白：葉梨（0 / 5人選択中）</h3>
+        </div>
+        <button onclick="closeLineupModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-300 hover:text-white flex items-center justify-center font-bold">✕</button>
+      </div>
+      <div class="px-4 py-2 bg-slate-100 border-b border-slate-200 flex items-center justify-between gap-2">
+        <span class="text-[11px] text-slate-600">コート上の5人をタップ</span>
+        <div class="flex gap-1.5">
+          <button onclick="copyPrevQuarterLineup()" id="lm-copy-prev-btn" class="px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-lg text-[11px] font-bold shadow-xs">前のQと同じ5人</button>
+          <button onclick="clearCurrentCourtLineup()" class="px-2 py-1 bg-white hover:bg-red-50 text-red-600 border border-slate-300 rounded-lg text-[11px] font-bold">全解除</button>
+        </div>
+      </div>
+      <div class="p-3.5 overflow-y-auto flex-1 grid grid-cols-2 sm:grid-cols-3 gap-2" id="lm-player-grid"></div>
+      <div class="p-3.5 bg-slate-50 border-t border-slate-200 flex justify-end">
+        <button onclick="closeLineupModal()" class="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-black text-sm rounded-xl shadow">決定して試合画面に戻る</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="timeout-modal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xs w-full p-4 shadow-xl space-y-3">
+      <div class="flex items-center justify-between">
+        <h3 id="tm-title" class="font-bold text-sm text-slate-900">タイムアウト記録</h3>
+        <button onclick="closeTimeoutModal()" class="text-slate-400 hover:text-slate-700 font-bold">✕</button>
+      </div>
+      <p class="text-xs text-slate-500">残り時間（分）を選択：</p>
+      <div class="grid grid-cols-4 gap-1.5">
+        <button onclick="confirmTimeout('6')" class="py-2 bg-slate-100 hover:bg-orange-500 hover:text-white font-black text-xs rounded-lg border border-slate-200">6分</button>
+        <button onclick="confirmTimeout('5')" class="py-2 bg-slate-100 hover:bg-orange-500 hover:text-white font-black text-xs rounded-lg border border-slate-200">5分</button>
+        <button onclick="confirmTimeout('4')" class="py-2 bg-slate-100 hover:bg-orange-500 hover:text-white font-black text-xs rounded-lg border border-slate-200">4分</button>
+        <button onclick="confirmTimeout('3')" class="py-2 bg-slate-100 hover:bg-orange-500 hover:text-white font-black text-xs rounded-lg border border-slate-200">3分</button>
+        <button onclick="confirmTimeout('2')" class="py-2 bg-slate-100 hover:bg-orange-500 hover:text-white font-black text-xs rounded-lg border border-slate-200">2分</button>
+        <button onclick="confirmTimeout('1')" class="py-2 bg-slate-100 hover:bg-orange-500 hover:text-white font-black text-xs rounded-lg border border-slate-200">1分</button>
+        <button onclick="confirmTimeout('0')" class="py-2 bg-slate-100 hover:bg-orange-500 hover:text-white font-black text-xs rounded-lg border border-slate-200">0分台</button>
+        <button onclick="confirmTimeout('○')" class="py-2 bg-slate-100 hover:bg-orange-500 hover:text-white font-black text-xs rounded-lg border border-slate-200">○のみ</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="history-modal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full max-h-[84vh] flex flex-col shadow-xl overflow-hidden">
+      <div class="px-4 py-3 bg-slate-900 text-white flex items-center justify-between">
+        <div>
+          <h3 class="font-bold text-sm">記録履歴・背番号の修正</h3>
+        </div>
+        <button onclick="closeHistoryModal()" class="text-slate-300 hover:text-white font-bold">✕</button>
+      </div>
+      <div id="history-modal-list" class="p-3 overflow-y-auto flex-1 space-y-2 text-xs"></div>
+      <div class="p-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+        <button onclick="closeHistoryModal(); confirmClearGame();" class="px-3 py-2 bg-red-50 text-red-600 hover:bg-red-100 font-bold text-xs rounded-xl">試合データを全消去</button>
+        <button onclick="closeHistoryModal()" class="px-4 py-2 bg-slate-800 text-white font-bold text-xs rounded-xl">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="custom-modal" class="no-print hidden fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-5 shadow-xl space-y-4">
+      <h3 id="modal-title" class="font-bold text-base text-slate-900">確認</h3>
+      <p id="modal-message" class="text-xs text-slate-600 leading-relaxed"></p>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeModal()" class="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">キャンセル</button>
+        <button id="modal-confirm-btn" class="px-4 py-2 rounded-xl text-xs font-bold bg-red-600 text-white hover:bg-red-700">実行する</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+
+    // =========================================================
+    // 選手マスタ編集機能（背番号・学年・氏名）
+    // =========================================================
+    let editingPlayerTarget = 'hanashi';
+    let editingPlayerIndex = -1;
+
+    function openEditPlayerModal(target, idx) {
+      const p = state[target].players[idx];
+      if (!p) return;
+      editingPlayerTarget = target;
+      editingPlayerIndex = idx;
+      document.getElementById('edit-player-num').value = p.number || '';
+      document.getElementById('edit-player-grade').value = p.grade || '';
+      document.getElementById('edit-player-name').value = p.name || '';
+      document.getElementById('edit-player-modal').classList.remove('hidden');
+    }
+
+    function closeEditPlayerModal() {
+      document.getElementById('edit-player-modal').classList.add('hidden');
+      editingPlayerIndex = -1;
+    }
+
+    function saveEditedPlayer() {
+      if (editingPlayerIndex < 0) return;
+      const num = document.getElementById('edit-player-num').value.trim();
+      const grade = document.getElementById('edit-player-grade').value.trim();
+      const name = document.getElementById('edit-player-name').value.trim();
+
+      if (!num || !name) {
+        showToast('背番号と選手氏名を入力してください', 'error');
+        return;
+      }
+
+      const team = state[editingPlayerTarget];
+      const duplicate = team.players.some((p, i) => i !== editingPlayerIndex && p.number === num);
+      if (duplicate) {
+        showToast(`背番号 #${num} は他の選手と重複しています`, 'error');
+        return;
+      }
+
+      const oldNum = team.players[editingPlayerIndex].number;
+      team.players[editingPlayerIndex].number = num;
+      team.players[editingPlayerIndex].grade = grade;
+      team.players[editingPlayerIndex].name = name;
+
+      // 試合中の出場記録やイベントの背番号も連動して更新
+      if (oldNum !== num) {
+        const side = (editingPlayerTarget === 'hanashi')
+          ? state.hanashiColor
+          : (state.hanashiColor === 'white' ? 'blue' : 'white');
+        [1, 2, 3, 4, 5].forEach(q => {
+          const cIdx = state.onCourt[side][q].indexOf(oldNum);
+          if (cIdx >= 0) state.onCourt[side][q][cIdx] = num;
+          if (state.participation[side][q][oldNum]) {
+            state.participation[side][q][num] = state.participation[side][q][oldNum];
+            delete state.participation[side][q][oldNum];
+          }
+        });
+        state.events.forEach(ev => {
+          if (ev.side === side && ev.number === oldNum) {
+            ev.number = num;
+            ev.playerName = name;
+          }
+        });
+      }
+
+      sortTeamPlayers(editingPlayerTarget);
+      saveToLocalStorage();
+      closeEditPlayerModal();
+      renderAll();
+      showToast(`#${num} ${name} の情報を更新しました`, 'success');
+    }
+
+    // =========================================================
+    // スプレッドシート（GAS）共有機能（上書き更新・読込）
+    // =========================================================
+    const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbxY964GX6vFDijvZZHAkcarqhFpob_d171aHdhKgboAaozzOHmH5WJ7AhYiCUC4Y5bU/exec';
+    const GAS_URL_STORAGE_NAME = 'minibasket_hanashi_gas_url_v1';
+
+    function getStoredGasUrl() {
+      try {
+        return (localStorage.getItem(GAS_URL_STORAGE_NAME) || DEFAULT_GAS_URL).trim();
+      } catch (e) {
+        return DEFAULT_GAS_URL;
+      }
+    }
+
+    function updateGasStatusUI() {
+      const url = getStoredGasUrl();
+      const statusEl = document.getElementById('gas-status-text');
+      if (!statusEl) return;
+      if (url) {
+        statusEl.textContent = '連携URL設定済（全員とマスタ共有可能）';
+        statusEl.className = 'text-[10px] text-emerald-700 font-bold';
+      } else {
+        statusEl.textContent = 'URL未設定（この端末のみ保存）';
+        statusEl.className = 'text-[10px] text-slate-500';
+      }
+    }
+
+    function openGasModal() {
+      document.getElementById('gas-url-input').value = getStoredGasUrl();
+      document.getElementById('gas-modal').classList.remove('hidden');
+    }
+
+    function closeGasModal() {
+      document.getElementById('gas-modal').classList.add('hidden');
+    }
+
+    function saveGasUrlFromModal() {
+      const val = document.getElementById('gas-url-input').value.trim();
+      if (!val) {
+        showToast('GASのURLを入力してください', 'error');
+        return;
+      }
+      try {
+        localStorage.setItem(GAS_URL_STORAGE_NAME, val);
+        updateGasStatusUI();
+        closeGasModal();
+        showToast('スプレッドシート連携URLを保存しました', 'success');
+      } catch (e) {
+        showToast('保存に失敗しました', 'error');
+      }
+    }
+
+    function clearSavedGasUrl() {
+      try {
+        localStorage.removeItem(GAS_URL_STORAGE_NAME);
+        document.getElementById('gas-url-input').value = DEFAULT_GAS_URL;
+        updateGasStatusUI();
+        closeGasModal();
+        showToast('初期設定の共有URLに戻しました', 'info');
+      } catch (e) {}
+    }
+
+    async function syncFromSpreadsheet(isSilent = false) {
+      const url = getStoredGasUrl();
+      if (!url) {
+        if (!isSilent) {
+          showToast('先に「⚙️ URL設定」からGASのURLを登録してください', 'error');
+          openGasModal();
+        }
+        return;
+      }
+
+      if (!isSilent) showToast('スプレッドシートから最新マスタを読込中...', 'info');
+
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('通信エラー');
+        const data = await res.json();
+
+        if (data && Array.isArray(data.players)) {
+          if (data.coach !== undefined) {
+            state.hanashi.coach = data.coach;
+            document.getElementById('hanashi-coach').value = data.coach;
+          }
+          if (data.acoach !== undefined) {
+            state.hanashi.acoach = data.acoach;
+            document.getElementById('hanashi-acoach').value = data.acoach;
+          }
+          state.hanashi.players = data.players.map(p => ({
+            number: String(p.number || '').trim(),
+            grade: String(p.grade || '').trim(),
+            name: String(p.name || '').trim(),
+            active: p.active !== false
+          })).filter(p => p.number && p.name);
+
+          sortTeamPlayers('hanashi');
+          saveToLocalStorage();
+          renderAll();
+          if (!isSilent) showToast(`スプレッドシートから${state.hanashi.players.length}名を読み込みました！`, 'success');
+        } else {
+          if (!isSilent) showToast('シートに有効なデータがありませんでした', 'error');
+        }
+      } catch (err) {
+        console.error(err);
+        if (!isSilent) showToast('スプレッドシートの読込に失敗しました', 'error');
+      }
+    }
+
+    async function syncToSpreadsheet() {
+      const url = getStoredGasUrl();
+      if (!url) {
+        showToast('先に「⚙️ URL設定」からGASのURLを登録してください', 'error');
+        openGasModal();
+        return;
+      }
+
+      openConfirmModal(
+        'スプレッドシートへ上書き保存',
+        'スプレッドシート内の古いデータはすべて削除され、現在の画面の「葉梨メンバー・コーチ情報」だけが新しく登録されます。よろしいですか？',
+        async () => {
+          showToast('スプレッドシートを更新中...', 'info');
+          try {
+            const payload = {
+              action: 'overwrite_master',
+              coach: state.hanashi.coach,
+              acoach: state.hanashi.acoach,
+              players: state.hanashi.players
+            };
+
+            const res = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+              body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) throw new Error('通信エラー');
+            const result = await res.json();
+            if (result.status === 'ok') {
+              showToast('古いデータを削除し、最新メンバーを保存しました！', 'success');
+            } else {
+              throw new Error(result.message || '保存エラー');
+            }
+          } catch (err) {
+            console.error(err);
+            showToast('スプレッドシートへの保存に失敗しました', 'error');
+          }
+        }
+      );
+    }
+
+    const API_KEY_STORAGE_NAME = 'minibasket_gemini_api_key_v1';
+
+    function getStoredApiKey() {
+      try {
+        return (localStorage.getItem(API_KEY_STORAGE_NAME) || '').trim();
+      } catch (e) {
+        return '';
+      }
+    }
+
+    function updateApiKeyStatusUI() {
+      const key = getStoredApiKey();
+      const btn = document.getElementById('header-apikey-btn');
+      const statusText = document.getElementById('header-apikey-status');
+      const warningBar = document.getElementById('ocr-apikey-warning');
+
+      if (key) {
+        btn.className = 'px-2.5 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-1 shrink-0 bg-emerald-950/80 border-emerald-500 text-emerald-300 hover:bg-emerald-900';
+        statusText.textContent = 'API済';
+        if (warningBar) warningBar.classList.add('hidden');
+      } else {
+        btn.className = 'px-2.5 py-1.5 rounded-xl text-xs font-bold border transition flex items-center gap-1 shrink-0 bg-amber-950/80 border-amber-500 text-amber-300 hover:bg-amber-900';
+        statusText.textContent = 'API未設定';
+        if (warningBar) warningBar.classList.remove('hidden');
+      }
+    }
+
+    function openApiKeyModal() {
+      const input = document.getElementById('apikey-input');
+      input.type = 'password';
+      document.getElementById('apikey-toggle-vis').textContent = '表示';
+      input.value = getStoredApiKey();
+      document.getElementById('apikey-modal').classList.remove('hidden');
+    }
+
+    function closeApiKeyModal() {
+      document.getElementById('apikey-modal').classList.add('hidden');
+    }
+
+    function toggleApiKeyVisibility() {
+      const input = document.getElementById('apikey-input');
+      const btn = document.getElementById('apikey-toggle-vis');
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = '隠す';
+      } else {
+        input.type = 'password';
+        btn.textContent = '表示';
+      }
+    }
+
+    function saveApiKeyFromModal() {
+      const val = document.getElementById('apikey-input').value.trim();
+      if (!val) {
+        showToast('APIキーを入力してください', 'error');
+        return;
+      }
+      try {
+        localStorage.setItem(API_KEY_STORAGE_NAME, val);
+        updateApiKeyStatusUI();
+        closeApiKeyModal();
+        showToast('APIキーをブラウザに保存しました！', 'success');
+      } catch (e) {
+        showToast('保存に失敗しました', 'error');
+      }
+    }
+
+    function clearSavedApiKey() {
+      try {
+        localStorage.removeItem(API_KEY_STORAGE_NAME);
+        document.getElementById('apikey-input').value = '';
+        updateApiKeyStatusUI();
+        closeApiKeyModal();
+        showToast('保存されていたAPIキーを削除しました', 'info');
+      } catch (e) {}
+    }
+
+    const INITIAL_HANASHI_DATA = {
+      name: "葉梨",
+      coach: "青島 一月",
+      acoach: "喜納 広志、杉山 舞美",
+      players: [
+        { grade: "5", name: "喜納 心奈", number: "2", active: true },
+        { grade: "4", name: "青木 もも", number: "4", active: true },
+        { grade: "2", name: "富永 夕月", number: "5", active: true },
+        { grade: "3", name: "森下 葵帆", number: "6", active: true },
+        { grade: "1", name: "森下 茉弥", number: "7", active: true },
+        { grade: "5", name: "杉山 愛奈", number: "9", active: true },
+        { grade: "5", name: "伊東 澪", number: "10", active: true },
+        { grade: "6", name: "行川 結愛", number: "12", active: true },
+        { grade: "6", name: "行川 乃愛", number: "15", active: true },
+        { grade: "3", name: "杉山 穂愛", number: "16", active: true },
+        { grade: "6", name: "竹下 花梨", number: "17", active: true },
+        { grade: "6", name: "加藤 凛", number: "18", active: true },
+        { grade: "6", name: "虎岩 朋奈", number: "19", active: true },
+        { grade: "5", name: "山口 湊", number: "20", active: true },
+        { grade: "3", name: "山梨 喜晴", number: "22", active: true },
+        { grade: "2", name: "竹下 梨々奈", number: "24", active: true },
+        { grade: "4", name: "長谷川 菜々", number: "25", active: true },
+        { grade: "4", name: "堀池 理希", number: "26", active: true },
+        { grade: "4", name: "青野 希帆", number: "27", active: true },
+        { grade: "5", name: "富永 朝翔", number: "43", active: true }
+      ]
+    };
+
+    let state = {
+      activeTab: 'setup',
+      hanashiColor: 'white',
+      meta: {
+        tournament: '練習試合',
+        date: new Date().toISOString().split('T')[0],
+        venue: '六東',
+        time: ''
+      },
+      hanashi: JSON.parse(JSON.stringify(INITIAL_HANASHI_DATA)),
+      opponent: {
+        name: "",
+        coach: "",
+        acoach: "",
+        players: []
+      },
+      currentQuarter: 1,
+      inputMode: { type: 'score2', value: 2 },
+      onCourt: {
+        white: { 1: [], 2: [], 3: [], 4: [], 5: [] },
+        blue: { 1: [], 2: [], 3: [], 4: [], 5: [] }
+      },
+      participation: {
+        white: { 1: {}, 2: {}, 3: {}, 4: {}, 5: {} },
+        blue: { 1: {}, 2: {}, 3: {}, 4: {}, 5: {} }
+      },
+      events: []
+    };
+
+    let activeLineupModalSide = 'white';
+    let activeTimeoutModalSide = 'white';
+
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('meta-date').value = state.meta.date;
+      loadFromLocalStorage();
+      sortTeamPlayers('hanashi');
+      updateApiKeyStatusUI();
+      updateGasStatusUI();
+      renderAll();
+      if (getStoredGasUrl()) {
+        syncFromSpreadsheet(true);
+      }
+    });
+
+    function saveToLocalStorage() {
+      try {
+        localStorage.setItem('minibasket_score_state_v6', JSON.stringify(state));
+      } catch (e) {}
+    }
+
+    function loadFromLocalStorage() {
+      try {
+        const saved = localStorage.getItem('minibasket_score_state_v6');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          state = { ...state, ...parsed };
+          state.inputMode = { type: 'score2', value: 2 };
+          document.getElementById('meta-tournament').value = state.meta.tournament || '';
+          document.getElementById('meta-date').value = state.meta.date || '';
+          document.getElementById('meta-venue').value = state.meta.venue || '';
+          document.getElementById('meta-time').value = state.meta.time || '';
+          document.getElementById('hanashi-coach').value = state.hanashi.coach || '';
+          document.getElementById('hanashi-acoach').value = state.hanashi.acoach || '';
+          document.getElementById('opponent-name').value = state.opponent.name || '';
+          document.getElementById('opponent-coach').value = state.opponent.coach || '';
+          document.getElementById('opponent-acoach').value = state.opponent.acoach || '';
+        }
+      } catch (e) {}
+    }
+
+    function getTeamBySide(side) {
+      if (side === 'white') {
+        return state.hanashiColor === 'white' ? state.hanashi : state.opponent;
+      } else {
+        return state.hanashiColor === 'blue' ? state.hanashi : state.opponent;
+      }
+    }
+
+    function isHanashiSide(side) {
+      return state.hanashiColor === side;
+    }
+function switchTab(tabName) {
+      state.activeTab = tabName;
+      ['setup', 'game', 'sheet'].forEach(t => {
+        const sec = document.getElementById(`tab-${t}`);
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (t === tabName) {
+          sec.classList.remove('hidden');
+          btn.className = 'flex-1 sm:flex-none px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition bg-orange-500 text-white shadow';
+        } else {
+          sec.classList.add('hidden');
+          btn.className = 'flex-1 sm:flex-none px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold transition text-slate-300 hover:text-white';
+        }
+      });
+      renderAll();
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const el = document.createElement('div');
+      const bg = type === 'error' ? 'bg-red-600' : type === 'success' ? 'bg-emerald-600' : 'bg-slate-800';
+      el.className = `${bg} text-white text-xs font-bold px-3.5 py-2 rounded-xl shadow-lg transition-all duration-200 transform -translate-y-2 opacity-0 text-center`;
+      el.textContent = message;
+      container.appendChild(el);
+      requestAnimationFrame(() => {
+        el.classList.remove('-translate-y-2', 'opacity-0');
+      });
+      setTimeout(() => {
+        el.classList.add('opacity-0');
+        setTimeout(() => el.remove(), 200);
+      }, 1700);
+    }
+
+    function openConfirmModal(title, message, onConfirm) {
+      document.getElementById('modal-title').textContent = title;
+      document.getElementById('modal-message').textContent = message;
+      const btn = document.getElementById('modal-confirm-btn');
+      btn.onclick = () => {
+        closeModal();
+        onConfirm();
+      };
+      document.getElementById('custom-modal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('custom-modal').classList.add('hidden');
+    }
+
+    function setHanashiColor(color) {
+      state.hanashiColor = color;
+      saveToLocalStorage();
+      renderAll();
+      showToast(`葉梨を「${color === 'white' ? '白（上段）' : '青（下段）'}」にセットしました`, 'success');
+    }
+
+    function updateMeta() {
+      state.meta.tournament = document.getElementById('meta-tournament').value;
+      state.meta.date = document.getElementById('meta-date').value;
+      state.meta.venue = document.getElementById('meta-venue').value;
+      state.meta.time = document.getElementById('meta-time').value;
+      saveToLocalStorage();
+    }
+
+    function updateTeamCoach(target) {
+      if (target === 'hanashi') {
+        state.hanashi.coach = document.getElementById('hanashi-coach').value;
+        state.hanashi.acoach = document.getElementById('hanashi-acoach').value;
+      } else {
+        state.opponent.coach = document.getElementById('opponent-coach').value;
+        state.opponent.acoach = document.getElementById('opponent-acoach').value;
+      }
+      saveToLocalStorage();
+    }
+
+    function updateOpponentName() {
+      state.opponent.name = document.getElementById('opponent-name').value;
+      saveToLocalStorage();
+    }
+
+    function togglePlayerRosterActive(target, idx) {
+      const p = state[target].players[idx];
+      if (!p) return;
+      p.active = p.active === false ? true : false;
+      saveToLocalStorage();
+      renderSetupTab();
+    }
+
+    function addPlayer(target) {
+      const numEl = document.getElementById(`${target}-add-num`);
+      const gradeEl = document.getElementById(`${target}-add-grade`);
+      const nameEl = document.getElementById(`${target}-add-name`);
+      const num = numEl.value.trim();
+      const grade = gradeEl.value.trim();
+      const name = nameEl.value.trim();
+
+      if (!num || !name) {
+        showToast('背番号と選手氏名を入力してください', 'error');
+        return;
+      }
+      const team = state[target];
+      if (team.players.some(p => p.number === num)) {
+        showToast(`背番号 #${num} は既に登録されています`, 'error');
+        return;
+      }
+      team.players.push({ number: num, grade: grade || '', name, active: true });
+      sortTeamPlayers(target);
+
+      numEl.value = '';
+      gradeEl.value = '';
+      nameEl.value = '';
+      saveToLocalStorage();
+      renderSetupTab();
+      showToast(`#${num} ${name} を追加しました`, 'success');
+    }
+
+    function sortTeamPlayers(target) {
+      state[target].players.sort((a, b) => {
+        const gA = Number(a.grade) || 0;
+        const gB = Number(b.grade) || 0;
+        if (gA !== gB) return gB - gA; // 学年降順 (6年 -> 1年)
+        return Number(a.number) - Number(b.number); // 背番号昇順
+      });
+    }
+
+    function importPlayersFromText() {
+      const text = document.getElementById('bulk-text-input').value;
+      if (!text.trim()) {
+        showToast('テキストを入力・貼り付けてください', 'error');
+        return;
+      }
+
+      const lines = text.split('\n');
+      let addedCount = 0;
+
+      lines.forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+
+        // 1. チーム名抽出
+        const teamMatch = trimmed.match(/(?:チーム|チーム名)[\s:：]*([^\s(（]+)/);
+        if (teamMatch && !trimmed.includes('#') && !trimmed.includes('コーチ') && !trimmed.includes('監督')) {
+          const tName = trimmed.replace(/(?:チーム|チーム名)[\s:：]*/, '').trim();
+          if (tName) {
+            state.opponent.name = tName;
+            document.getElementById('opponent-name').value = tName;
+          }
+          return;
+        } else if (!trimmed.includes('#') && !trimmed.includes('コーチ') && !trimmed.includes('監督') && !trimmed.includes('年') && trimmed.length > 2 && !state.opponent.name) {
+          state.opponent.name = trimmed;
+          document.getElementById('opponent-name').value = trimmed;
+          return;
+        }
+
+        // 2. A.コーチ抽出（※「コーチ」より先に判定して吸い込まれるのを防ぐ）
+        if (/^(?:A\.?コーチ|副コーチ|アシスタント)/.test(trimmed)) {
+          const acName = trimmed.replace(/^(?:A\.?コーチ|副コーチ|アシスタント)[\s:：]*/, '').trim();
+          if (acName) {
+            state.opponent.acoach = acName;
+            document.getElementById('opponent-acoach').value = acName;
+          }
+          return;
+        }
+
+        // 3. コーチ抽出
+        if (/^(?:コーチ|監督)/.test(trimmed)) {
+          const cName = trimmed.replace(/^(?:コーチ|監督)[\s:：]*/, '').trim();
+          if (cName) {
+            state.opponent.coach = cName;
+            document.getElementById('opponent-coach').value = cName;
+          }
+          return;
+        }
+
+        // 4. 選手情報抽出 (例: #1森田蒼大(5年))
+        const playerMatch = trimmed.match(/#?(\d+)[\s:：、,]*([^\d(（\s]+[\s]?[^\d(（\s]*)[(（]?([1-6])年?[)）]?/);
+        if (playerMatch) {
+          const num = playerMatch[1];
+          const name = playerMatch[2].trim();
+          const grade = playerMatch[3];
+
+          if (!state.opponent.players.some(p => p.number === num)) {
+            state.opponent.players.push({ number: num, grade, name, active: true });
+            addedCount++;
+          }
+        }
+      });
+
+      sortTeamPlayers('opponent');
+      saveToLocalStorage();
+      renderSetupTab();
+
+      document.getElementById('bulk-text-input').value = '';
+      if (addedCount > 0 || state.opponent.name) {
+        showToast(`チーム名・${addedCount}名の選手を一括設定しました！`, 'success');
+      } else {
+        showToast('情報を読み込めませんでした。書式を確認してください', 'error');
+      }
+    }
+
+    function removePlayer(target, idx) {
+      state[target].players.splice(idx, 1);
+      saveToLocalStorage();
+      renderSetupTab();
+    }
+
+    function resetHanashiMaster() {
+      openConfirmModal('葉梨マスタのリセット', '葉梨のメンバー・コーチを初期登録データに戻しますか？', () => {
+        state.hanashi = JSON.parse(JSON.stringify(INITIAL_HANASHI_DATA));
+        sortTeamPlayers('hanashi');
+        document.getElementById('hanashi-coach').value = state.hanashi.coach;
+        document.getElementById('hanashi-acoach').value = state.hanashi.acoach;
+        saveToLocalStorage();
+        renderSetupTab();
+        showToast('葉梨マスタを初期値に戻しました', 'success');
+      });
+    }
+
+    function resizeImageToBase64(file, maxWidth = 1400) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            let w = img.width;
+            let h = img.height;
+            if (w > maxWidth) {
+              h = Math.round((h * maxWidth) / w);
+              w = maxWidth;
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            resolve(dataUrl.split(',')[1]);
+          };
+          img.onerror = reject;
+          img.src = e.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    async function handleOpponentImageUpload(event) {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const apiKey = getStoredApiKey();
+      if (!apiKey) {
+        event.target.value = '';
+        showToast('先に「🔑 APIキー」を設定してください', 'error');
+        openApiKeyModal();
+        return;
+      }
+
+      const loadingEl = document.getElementById('ocr-loading');
+      loadingEl.classList.remove('hidden');
+
+      try {
+        const base64Data = await resizeImageToBase64(file);
+        
+        // スキルと同等の厳格なプロンプトをアプリ内OCRにも搭載
+        const prompt = `あなたはバスケットボールのスコアシート／メンバー表を正確に読み取るOCRアシスタントです。
+画像からチーム名、コーチ名、A.コーチ名、選手一覧（背番号、選手名、学年）を抽出し、必ず以下のJSON形式のみを返してください。
+- teamName: チーム名（文字列。不明なら空文字）
+- coach: コーチ名（文字列。不明なら空文字）
+- assistantCoach: アシスタントコーチ名（文字列。複数いる場合は読点「、」で繋ぐ。不明なら空文字）
+- players: 選手の配列。各要素は { "grade": "学年(数字のみ)", "name": "選手氏名", "number": "背番号(数字のみ)" }。`;
+
+        const payload = {
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: prompt },
+                {
+                  inlineData: {
+                    mimeType: "image/jpeg",
+                    data: base64Data
+                  }
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "OBJECT",
+              properties: {
+                teamName: { type: "STRING" },
+                coach: { type: "STRING" },
+                assistantCoach: { type: "STRING" },
+                players: {
+                  type: "ARRAY",
+                  items: {
+                    type: "OBJECT",
+                    properties: {
+                      grade: { type: "STRING" },
+                      name: { type: "STRING" },
+                      number: { type: "STRING" }
+                    },
+                    required: ["grade", "name", "number"]
+                  }
+                }
+              },
+              required: ["teamName", "coach", "assistantCoach", "players"]
+            }
+          }
+        };
+
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+        let response = null;
+        for (let attempt = 0; attempt < 3; attempt++) {
+          response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (response.ok) break;
+          await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+        }
+
+        if (!response || !response.ok) {
+          throw new Error('読み取りAPIへの接続に失敗しました');
+        }
+
+        const result = await response.json();
+        const rawText = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!rawText) throw new Error('画像から文字を抽出できませんでした');
+const parsed = JSON.parse(rawText);
+
+        if (parsed.teamName) {
+          state.opponent.name = parsed.teamName;
+          document.getElementById('opponent-name').value = parsed.teamName;
+        }
+        if (parsed.coach !== undefined) {
+          state.opponent.coach = parsed.coach;
+          document.getElementById('opponent-coach').value = parsed.coach;
+        }
+        if (parsed.assistantCoach !== undefined) {
+          state.opponent.acoach = parsed.assistantCoach;
+          document.getElementById('opponent-acoach').value = parsed.assistantCoach;
+        }
+        if (Array.isArray(parsed.players) && parsed.players.length > 0) {
+          state.opponent.players = parsed.players
+            .filter(p => p.name || p.number)
+            .map((p, idx) => ({
+              grade: String(p.grade || '').trim(),
+              name: String(p.name || `選手${idx + 1}`).trim(),
+              number: String(p.number || (idx + 4)).trim(),
+              active: true
+            }));
+        }
+
+        sortTeamPlayers('opponent');
+        saveToLocalStorage();
+        renderSetupTab();
+        showToast(`${state.opponent.players.length}名の選手を読み取りました！`, 'success');
+      } catch (err) {
+        console.error(err);
+        showToast('画像の読み取りに失敗しました。APIキーをご確認ください', 'error');
+      } finally {
+        loadingEl.classList.add('hidden');
+        event.target.value = '';
+      }
+    }
+
+    function renderSetupTab() {
+      const btnW = document.getElementById('btn-color-white');
+      const btnB = document.getElementById('btn-color-blue');
+      const hBadge = document.getElementById('hanashi-badge');
+      const oBadge = document.getElementById('opponent-badge');
+
+      if (state.hanashiColor === 'white') {
+        btnW.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-white text-slate-900 shadow-sm border border-slate-300';
+        btnB.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900';
+        hBadge.className = 'px-2 py-0.5 text-xs font-bold rounded bg-slate-100 text-slate-800 border border-slate-300';
+        hBadge.textContent = '白（上段）';
+        oBadge.className = 'px-2 py-0.5 text-xs font-bold rounded bg-blue-600 text-white';
+        oBadge.textContent = '青（下段）';
+      } else {
+        btnB.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 bg-blue-600 text-white shadow-sm';
+        btnW.className = 'px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 text-slate-600 hover:text-slate-900';
+        hBadge.className = 'px-2 py-0.5 text-xs font-bold rounded bg-blue-600 text-white';
+        hBadge.textContent = '青（下段）';
+        oBadge.className = 'px-2 py-0.5 text-xs font-bold rounded bg-slate-100 text-slate-800 border border-slate-300';
+        oBadge.textContent = '白（上段）';
+      }
+
+      const hList = document.getElementById('hanashi-player-list');
+      hList.innerHTML = state.hanashi.players.map((p, idx) => {
+        const isActive = p.active !== false;
+        return `
+          <div class="flex items-center justify-between px-3 py-1.5 text-xs ${isActive ? 'hover:bg-slate-50' : 'bg-slate-50 opacity-50'}">
+            <label class="flex items-center gap-2.5 cursor-pointer flex-1">
+              <input type="checkbox" ${isActive ? 'checked' : ''} onchange="togglePlayerRosterActive('hanashi', ${idx})"
+                class="w-4 h-4 rounded accent-orange-500 cursor-pointer" />
+              <span class="w-7 text-center font-black bg-slate-100 text-slate-800 py-0.5 rounded">#${p.number}</span>
+              <span class="text-slate-400 w-7">${p.grade ? p.grade + '年' : '-'}</span>
+              <span class="font-bold text-slate-800">${p.name}</span>
+            </label>
+            <div class="flex items-center gap-1 shrink-0">
+              <button onclick="openEditPlayerModal('hanashi', ${idx})" class="text-slate-500 hover:text-orange-600 bg-slate-100 hover:bg-orange-50 px-2 py-0.5 rounded text-[11px] font-bold">✏️編集</button>
+              <button onclick="removePlayer('hanashi', ${idx})" class="text-slate-400 hover:text-red-500 px-1.5 py-0.5">✕</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const oList = document.getElementById('opponent-player-list');
+      if (state.opponent.players.length === 0) {
+        oList.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">上の写真読取またはテキスト一括登録で選手を追加してください</p>`;
+      } else {
+        oList.innerHTML = state.opponent.players.map((p, idx) => {
+          const isActive = p.active !== false;
+          return `
+            <div class="flex items-center justify-between px-3 py-1.5 text-xs ${isActive ? 'hover:bg-slate-50' : 'bg-slate-50 opacity-50'}">
+              <label class="flex items-center gap-2.5 cursor-pointer flex-1">
+                <input type="checkbox" ${isActive ? 'checked' : ''} onchange="togglePlayerRosterActive('opponent', ${idx})"
+                  class="w-4 h-4 rounded accent-blue-600 cursor-pointer" />
+                <span class="w-7 text-center font-black bg-blue-50 text-blue-800 py-0.5 rounded">#${p.number}</span>
+                <span class="text-slate-400 w-7">${p.grade ? p.grade + '年' : '-'}</span>
+                <span class="font-bold text-slate-800">${p.name}</span>
+              </label>
+              <div class="flex items-center gap-1 shrink-0">
+                <button onclick="openEditPlayerModal('opponent', ${idx})" class="text-slate-500 hover:text-blue-600 bg-slate-100 hover:bg-blue-50 px-2 py-0.5 rounded text-[11px] font-bold">✏️編集</button>
+                <button onclick="removePlayer('opponent', ${idx})" class="text-slate-400 hover:text-red-500 px-1.5 py-0.5">✕</button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    function setQuarter(q) {
+      state.currentQuarter = q;
+      resetInputMode(false);
+      saveToLocalStorage();
+      renderGameTab();
+    }
+
+    function setInputMode(type, value) {
+      if (state.inputMode.type === type && state.inputMode.value === value) {
+        resetInputMode();
+        return;
+      }
+      state.inputMode = { type, value };
+      renderGameTab();
+    }
+
+    function resetInputMode(shouldRender = true) {
+      state.inputMode = { type: 'score2', value: 2 };
+      if (shouldRender) renderGameTab();
+    }
+
+    function handlePlayerTap(side, number, name) {
+      const teamName = getTeamBySide(side).name || '対戦相手';
+      const mode = state.inputMode;
+      const isHanashi = isHanashiSide(side);
+      const dispLabel = isHanashi && number !== '?' ? `#${number} ${name}` : `#${number}`;
+
+      if (mode.type === 'score2') {
+        state.events.push({
+          id: Date.now() + Math.random(),
+          type: 'score',
+          side,
+          quarter: state.currentQuarter,
+          number,
+          playerName: name,
+          points: 2
+        });
+        saveToLocalStorage();
+        renderGameTab();
+        showToast(`${teamName} ${dispLabel} +2点！`, 'success');
+      } else if (mode.type === 'ft') {
+        state.events.push({
+          id: Date.now() + Math.random(),
+          type: 'score',
+          side,
+          quarter: state.currentQuarter,
+          number,
+          playerName: name,
+          points: 1
+        });
+        resetInputMode(false);
+        saveToLocalStorage();
+        renderGameTab();
+        showToast(`${teamName} ${dispLabel} FT +1点！`, 'success');
+      } else if (mode.type === 'foul') {
+        const foulType = mode.value;
+        if (number !== '?') {
+          const existingFouls = state.events.filter(e => e.type === 'foul' && e.side === side && e.number === number).length;
+          if (existingFouls >= 5) {
+            showToast(`${dispLabel} は既に5ファウル（退場）です`, 'error');
+            resetInputMode();
+            return;
+          }
+        }
+
+        state.events.push({
+          id: Date.now() + Math.random(),
+          type: 'foul',
+          side,
+          quarter: state.currentQuarter,
+          number,
+          playerName: name,
+          foulType
+        });
+
+        const newCount = number !== '?'
+          ? state.events.filter(e => e.type === 'foul' && e.side === side && e.number === number).length
+          : 0;
+
+        resetInputMode(false);
+        saveToLocalStorage();
+        renderGameTab();
+
+        if (number === '?') {
+          showToast(`${teamName} #? (不明) ファウル(${foulType}) 記録`, 'info');
+        } else {
+          showToast(`${teamName} ${dispLabel} ファウル(${foulType}) [計${newCount}回]`, newCount >= 5 ? 'error' : 'info');
+        }
+      }
+    }
+
+    function openLineupModal(side) {
+      activeLineupModalSide = side;
+      renderLineupModal();
+      document.getElementById('lineup-modal').classList.remove('hidden');
+    }
+
+    function closeLineupModal() {
+      document.getElementById('lineup-modal').classList.add('hidden');
+      renderGameTab();
+    }
+
+    function toggleCourtPlayerInModal(number) {
+      const side = activeLineupModalSide;
+      const q = state.currentQuarter;
+      const courtArr = state.onCourt[side][q];
+      const partMap = state.participation[side][q];
+      const idx = courtArr.indexOf(number);
+
+      if (idx >= 0) {
+        courtArr.splice(idx, 1);
+      } else {
+        if (courtArr.length >= 5) {
+          showToast('コートに出られるのは5人までです', 'error');
+          return;
+        }
+        courtArr.push(number);
+        const qHasEvents = state.events.some(e => e.quarter === q && (e.type === 'score' || e.type === 'foul'));
+        if (!partMap[number]) {
+          partMap[number] = qHasEvents ? 'sub' : 'start';
+        } else if (partMap[number] === 'start' && qHasEvents) {
+          partMap[number] = 'both';
+        }
+      }
+      saveToLocalStorage();
+      renderLineupModal();
+    }
+
+    function copyPrevQuarterLineup() {
+      const side = activeLineupModalSide;
+      const q = state.currentQuarter;
+      if (q <= 1) return;
+      const prevArr = state.onCourt[side][q - 1];
+      if (!prevArr || prevArr.length === 0) return;
+      state.onCourt[side][q] = [...prevArr];
+      prevArr.forEach(num => {
+        if (!state.participation[side][q][num]) {
+          state.participation[side][q][num] = 'start';
+        }
+      });
+      saveToLocalStorage();
+      renderLineupModal();
+      showToast(`${q - 1}Qの5人をコピーしました`, 'success');
+    }
+
+    function clearCurrentCourtLineup() {
+      const side = activeLineupModalSide;
+      const q = state.currentQuarter;
+      state.onCourt[side][q] = [];
+      state.participation[side][q] = {};
+      saveToLocalStorage();
+      renderLineupModal();
+    }
+
+    function renderLineupModal() {
+      const side = activeLineupModalSide;
+      const q = state.currentQuarter;
+      const team = getTeamBySide(side);
+      const courtArr = state.onCourt[side][q];
+      const benchPlayers = team.players.filter(p => p.active !== false);
+
+      document.getElementById('lm-subtitle').textContent = `${q === 5 ? 'OT' : q + 'Q'} 出場メンバー設定・交代`;
+      document.getElementById('lm-title').textContent = `${side === 'white' ? '白' : '青'}：${team.name || 'チーム'}（${courtArr.length} / 5人選択中）`;
+
+      const prevBtn = document.getElementById('lm-copy-prev-btn');
+      if (q > 1 && state.onCourt[side][q - 1].length > 0) {
+        prevBtn.classList.remove('hidden');
+      } else {
+        prevBtn.classList.add('hidden');
+      }
+
+      const grid = document.getElementById('lm-player-grid');
+      if (benchPlayers.length === 0) {
+        grid.innerHTML = `<p class="col-span-3 text-xs text-slate-400 text-center py-6">登録されている選手がいません。「1. チーム・読取」タブから選手を追加してください。</p>`;
+        return;
+      }
+
+      grid.innerHTML = benchPlayers.map(p => {
+        const isOn = courtArr.includes(p.number);
+        const fouls = state.events.filter(e => e.type === 'foul' && e.side === side && e.number === p.number).length;
+        const playedQs = [1, 2, 3, 4].filter(qn => state.participation[side][qn][p.number]);
+
+        return `
+          <button onclick="toggleCourtPlayerInModal('${p.number}')"
+            class="p-2.5 rounded-xl border-2 text-left transition flex items-center justify-between ${
+              isOn
+                ? 'bg-emerald-600 text-white border-emerald-700 shadow-md'
+                : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50'
+            }">
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="text-sm font-black ${isOn ? 'text-white' : 'text-slate-900'}">#${p.number}</span>
+                <span class="text-xs font-bold truncate">${p.name}</span>
+              </div>
+              <div class="text-[10px] mt-0.5 ${isOn ? 'text-emerald-100' : 'text-slate-400'}">
+                出場Q: ${playedQs.length > 0 ? playedQs.map(n => n + 'Q').join(',') : 'なし'}
+              </div>
+            </div>
+            <div class="flex flex-col items-end gap-1 shrink-0 ml-1">
+              ${isOn ? '<span class="text-[10px] font-black bg-white text-emerald-700 px-1.5 py-0.5 rounded">出場中</span>' : ''}
+              ${fouls > 0 ? `<span class="text-[10px] font-black px-1.5 py-0.2 rounded ${fouls >= 5 ? 'bg-red-600 text-white' : 'bg-amber-400 text-slate-900'}">F${fouls}</span>` : ''}
+            </div>
+          </button>
+        `;
+      }).join('');
+    }
+function openTimeoutModal(side) {
+      activeTimeoutModalSide = side;
+      const team = getTeamBySide(side);
+      document.getElementById('tm-title').textContent = `${side === 'white' ? '白' : '青'}：${team.name || 'チーム'} タイムアウト`;
+      document.getElementById('timeout-modal').classList.remove('hidden');
+    }
+
+    function closeTimeoutModal() {
+      document.getElementById('timeout-modal').classList.add('hidden');
+    }
+
+    function confirmTimeout(minuteLabel) {
+      const side = activeTimeoutModalSide;
+      const q = state.currentQuarter;
+      const teamName = getTeamBySide(side).name || 'チーム';
+      state.events.push({
+        id: Date.now() + Math.random(),
+        type: 'timeout',
+        side,
+        quarter: q,
+        minuteLabel
+      });
+      closeTimeoutModal();
+      saveToLocalStorage();
+      renderGameTab();
+      showToast(`${teamName} タイムアウト (${q === 5 ? 'OT' : q + 'Q'}・残り${minuteLabel})`, 'info');
+    }
+
+    function openHistoryModal() {
+      renderHistoryModalList();
+      document.getElementById('history-modal').classList.remove('hidden');
+    }
+
+    function closeHistoryModal() {
+      document.getElementById('history-modal').classList.add('hidden');
+    }
+
+    function updateEventPlayerNumber(eventId, newNumber) {
+      const ev = state.events.find(e => e.id === eventId);
+      if (!ev) return;
+      const team = getTeamBySide(ev.side);
+      if (newNumber === '?') {
+        ev.number = '?';
+        ev.playerName = '不明';
+      } else {
+        const found = team.players.find(p => p.number === newNumber);
+        ev.number = newNumber;
+        ev.playerName = found ? found.name : `選手#${newNumber}`;
+      }
+      saveToLocalStorage();
+      renderHistoryModalList();
+      renderGameTab();
+      showToast(`背番号を #${ev.number} (${ev.playerName}) に修正しました`, 'success');
+    }
+
+    function deleteSingleEvent(eventId) {
+      state.events = state.events.filter(e => e.id !== eventId);
+      saveToLocalStorage();
+      renderHistoryModalList();
+      renderGameTab();
+      showToast('選択した記録を削除しました', 'info');
+    }
+
+    function renderHistoryModalList() {
+      const listEl = document.getElementById('history-modal-list');
+      if (state.events.length === 0) {
+        listEl.innerHTML = `<p class="text-slate-400 text-center py-6">まだ記録がありません</p>`;
+        return;
+      }
+
+      const reversed = [...state.events].reverse();
+      listEl.innerHTML = reversed.map(ev => {
+        const team = getTeamBySide(ev.side);
+        const sideBadge = ev.side === 'white'
+          ? `<span class="px-1.5 py-0.5 rounded bg-slate-200 text-slate-800 font-bold text-[10px]">白</span>`
+          : `<span class="px-1.5 py-0.5 rounded bg-blue-600 text-white font-bold text-[10px]">青</span>`;
+        const qLabel = ev.quarter === 5 ? 'OT' : `${ev.quarter}Q`;
+        const qColor = (ev.quarter === 1 || ev.quarter === 3) ? 'text-red-600 font-bold' : 'text-slate-800 font-bold';
+        const isUnknown = ev.number === '?';
+
+        if (ev.type === 'timeout') {
+          return `
+            <div class="flex items-center justify-between px-3 py-2 bg-slate-50 rounded-xl border border-slate-200">
+              <div class="flex items-center gap-1.5">
+                <span class="${qColor}">[${qLabel}]</span>
+                ${sideBadge}
+                <span class="font-bold text-slate-700">${team.name || 'チーム'}</span>
+                <span class="text-purple-700 font-black">タイムアウト(${ev.minuteLabel || '○'})</span>
+              </div>
+              <button onclick="deleteSingleEvent(${ev.id})" class="text-slate-400 hover:text-red-600 font-bold px-1.5">削除</button>
+            </div>
+          `;
+        }
+
+        const actionLabel = ev.type === 'score'
+          ? `<span class="text-emerald-700 font-black">+${ev.points}点</span>`
+          : `<span class="text-amber-700 font-black">ファウル(${ev.foulType})</span>`;
+
+        const optionsHTML = [
+          `<option value="?" ${ev.number === '?' ? 'selected' : ''}>#? 不明</option>`,
+          ...team.players.map(p => `<option value="${p.number}" ${ev.number === p.number ? 'selected' : ''}>#${p.number} ${p.name}</option>`)
+        ].join('');
+
+        return `
+          <div class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-xl border ${isUnknown ? 'bg-amber-50 border-amber-300' : 'bg-slate-50 border-slate-200'}">
+            <div class="flex items-center gap-1.5">
+              <span class="${qColor}">[${qLabel}]</span>
+              ${sideBadge}
+              ${actionLabel}
+              ${isUnknown ? '<span class="text-[10px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded">要修正</span>' : ''}
+            </div>
+            <div class="flex items-center gap-1.5">
+              <select onchange="updateEventPlayerNumber(${ev.id}, this.value)"
+                class="px-2 py-1 text-xs font-bold bg-white border border-slate-300 rounded-lg">
+                ${optionsHTML}
+              </select>
+              <button onclick="deleteSingleEvent(${ev.id})" class="text-slate-400 hover:text-red-600 font-bold px-1.5">削除</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function undoLastAction() {
+      if (state.events.length === 0) {
+        showToast('取り消す操作がありません', 'error');
+        return;
+      }
+      state.events.pop();
+      saveToLocalStorage();
+      renderGameTab();
+      showToast('直前の記録を1つ取り消しました', 'info');
+    }
+
+    function confirmClearGame() {
+      openConfirmModal('試合データのリセット', '現在の得点・ファウル・出場メンバーの記録をすべて消去しますか？', () => {
+        state.events = [];
+        state.onCourt = {
+          white: { 1: [], 2: [], 3: [], 4: [], 5: [] },
+          blue: { 1: [], 2: [], 3: [], 4: [], 5: [] }
+        };
+        state.participation = {
+          white: { 1: {}, 2: {}, 3: {}, 4: {}, 5: {} },
+          blue: { 1: {}, 2: {}, 3: {}, 4: {}, 5: {} }
+        };
+        resetInputMode(false);
+        state.currentQuarter = 1;
+        saveToLocalStorage();
+        renderAll();
+        showToast('試合データをリセットしました', 'success');
+      });
+    }
+
+    function calculateScores() {
+      const res = {
+        white: { total: 0, q: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, tf: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } },
+        blue: { total: 0, q: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, tf: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } }
+      };
+      state.events.forEach(ev => {
+        if (ev.type === 'score') {
+          res[ev.side].total += ev.points;
+          res[ev.side].q[ev.quarter] += ev.points;
+        } else if (ev.type === 'foul') {
+          res[ev.side].tf[ev.quarter] += 1;
+        }
+      });
+      return res;
+    }
+
+    function renderGameTab() {
+      const whiteTeam = getTeamBySide('white');
+      const blueTeam = getTeamBySide('blue');
+      const scores = calculateScores();
+      const q = state.currentQuarter;
+      const isRedQ = (q === 1 || q === 3);
+      const mode = state.inputMode;
+
+      [1, 2, 3, 4, 5].forEach(num => {
+        const btn = document.getElementById(`q-btn-${num}`);
+        if (num === q) {
+          const isRed = (num === 1 || num === 3);
+          btn.className = `flex-1 py-1.5 rounded-lg text-xs font-black transition text-white ${isRed ? 'bg-red-600 shadow' : 'bg-orange-500 shadow'}`;
+        } else {
+          btn.className = 'flex-1 py-1.5 rounded-lg text-xs font-black transition text-slate-300 hover:text-white';
+        }
+      });
+
+      const inkEl = document.getElementById('current-q-ink-indicator');
+      if (isRedQ) {
+        inkEl.className = 'text-[10px] font-black px-2 py-1 rounded bg-red-100 text-red-700 shrink-0';
+        inkEl.textContent = `${q}Q：赤ペン`;
+      } else {
+        inkEl.className = 'text-[10px] font-black px-2 py-1 rounded bg-slate-200 text-slate-800 shrink-0';
+        inkEl.textContent = `${q === 5 ? 'OT' : q + 'Q'}：黒ペン`;
+      }
+
+      const barContainer = document.getElementById('action-bar-container');
+      const bannerEl = document.getElementById('input-mode-banner');
+      const cancelBtn = document.getElementById('cancel-mode-btn');
+
+      ['ft', 'P', 'P1', 'P2', 'U', 'T'].forEach(key => {
+        const b = document.getElementById(`mode-btn-${key}`);
+        if (b) b.classList.remove('ring-4', 'ring-slate-900', 'scale-105');
+      });
+
+      if (mode.type === 'score2') {
+        barContainer.className = 'bg-white rounded-2xl shadow-md border-2 border-slate-300 p-2.5 sticky bottom-2 z-30 transition-all';
+        bannerEl.className = 'flex items-center gap-1.5 text-xs font-black text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 flex-1';
+        bannerEl.innerHTML = '<span>🏀 通常モード：背番号タップで即【+2点】</span>';
+        cancelBtn.classList.add('hidden');
+      } else if (mode.type === 'ft') {
+        barContainer.className = 'bg-sky-50 rounded-2xl shadow-lg border-2 border-sky-500 p-2.5 sticky bottom-2 z-30 transition-all';
+        bannerEl.className = 'flex items-center gap-1.5 text-xs font-black text-white bg-sky-600 px-2.5 py-1 rounded-lg flex-1 animate-pulse';
+        bannerEl.innerHTML = '<span>🎯 FT(+1点)モード：決めた選手の背番号をタップ！</span>';
+        cancelBtn.classList.remove('hidden');
+        document.getElementById('mode-btn-ft')?.classList.add('ring-4', 'ring-slate-900', 'scale-105');
+      } else if (mode.type === 'foul') {
+        barContainer.className = 'bg-orange-50 rounded-2xl shadow-lg border-2 border-orange-500 p-2.5 sticky bottom-2 z-30 transition-all';
+        bannerEl.className = 'flex items-center gap-1.5 text-xs font-black text-white bg-orange-600 px-2.5 py-1 rounded-lg flex-1 animate-pulse';
+        bannerEl.innerHTML = `<span>⚠️ ファウル【${mode.value}】モード：ファウルした選手の背番号をタップ！</span>`;
+        cancelBtn.classList.remove('hidden');
+        document.getElementById(`mode-btn-${mode.value}`)?.classList.add('ring-4', 'ring-slate-900', 'scale-105');
+      }
+
+      document.getElementById('sb-white-name').textContent = whiteTeam.name || '白チーム';
+      document.getElementById('sb-blue-name').textContent = blueTeam.name || '青チーム';
+      document.getElementById('sb-white-score').textContent = scores.white.total;
+      document.getElementById('sb-blue-score').textContent = scores.blue.total;
+
+      const wTfEl = document.getElementById('sb-white-tf');
+      const bTfEl = document.getElementById('sb-blue-tf');
+      wTfEl.textContent = scores.white.tf[q];
+      wTfEl.className = scores.white.tf[q] >= 4 ? 'font-black text-red-600' : 'font-black text-slate-900';
+      bTfEl.textContent = scores.blue.tf[q];
+      bTfEl.className = scores.blue.tf[q] >= 4 ? 'font-black text-red-400' : 'font-black text-white';
+
+      document.getElementById('sb-q-mini').innerHTML = `
+        <span class="text-orange-400">${q === 5 ? 'OT' : q + 'Q'}</span>
+        <span>${scores.white.q[q]}-${scores.blue.q[q]}</span>
+      `;
+
+      document.getElementById('court-white-title').textContent = `白：${whiteTeam.name || '白チーム'}`;
+      document.getElementById('court-blue-title').textContent = `青：${blueTeam.name || '青チーム'}`;
+
+      ['white', 'blue'].forEach(side => {
+        const team = side === 'white' ? whiteTeam : blueTeam;
+        const isHanashi = isHanashiSide(side);
+        const activeNums = state.onCourt[side][q];
+        document.getElementById(`court-${side}-badge`).textContent = `${activeNums.length}/5人`;
+
+        const container = document.getElementById(`court-${side}-players`);
+        const activePlayers = activeNums
+          .map(num => team.players.find(p => p.number === num))
+          .filter(Boolean);
+
+        let modeRingClass = '';
+        if (mode.type === 'foul') modeRingClass = 'ring-2 ring-orange-400';
+        else if (mode.type === 'ft') modeRingClass = 'ring-2 ring-sky-400';
+
+        if (activePlayers.length === 0) {
+          container.innerHTML = `
+            <div class="flex gap-1.5 items-stretch">
+              <button onclick="openLineupModal('${side}')"
+                class="flex-1 py-4 px-3 rounded-xl border-2 border-dashed ${
+                  side === 'white'
+                    ? 'border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700'
+                    : 'border-blue-300 bg-blue-100/50 hover:bg-blue-100 text-blue-900'
+                } font-bold text-xs flex flex-col items-center justify-center gap-0.5 transition">
+                <span>＋ ${q === 5 ? 'OT' : q + 'Q'}の出場5人を選ぶ</span>
+                <span class="text-[10px] font-normal opacity-75">選んだ5人だけが並びます</span>
+              </button>
+              <button onclick="handlePlayerTap('${side}', '?', '不明')"
+                class="w-16 py-2 px-1 rounded-xl border-2 border-dashed border-amber-400 bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-900 flex flex-col items-center justify-center transition ${modeRingClass}">
+                <span class="text-lg font-black leading-none">？</span>
+                <span class="text-[10px] font-bold mt-1">不明</span>
+              </button>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = `
+          <div class="grid grid-cols-6 gap-1">
+            ${activePlayers.map(p => {
+              const fouls = state.events.filter(e => e.type === 'foul' && e.side === side && e.number === p.number).length;
+              const pts = state.events
+                .filter(e => e.type === 'score' && e.side === side && e.number === p.number)
+                .reduce((sum, e) => sum + e.points, 0);
+
+              const cardCls = side === 'white'
+                ? 'bg-slate-50 text-slate-900 border-slate-300 hover:bg-emerald-50 active:bg-emerald-500 active:text-white'
+                : 'bg-white text-blue-950 border-blue-300 hover:bg-emerald-50 active:bg-emerald-500 active:text-white';
+
+              const safeName = p.name.replace(/'/g, "\\'");
+
+              if (isHanashi) {
+                return `
+                  <button onclick="handlePlayerTap('${side}', '${p.number}', '${safeName}')"
+                    class="relative py-2 px-0.5 rounded-xl border-2 transition active:scale-95 flex flex-col items-center justify-between min-h-[76px] ${cardCls} ${modeRingClass}">
+                    <span class="text-base sm:text-lg font-black leading-none">#${p.number}</span>
+                    <span class="text-[11px] font-bold leading-tight text-center break-all line-clamp-2 w-full px-0.5 mt-1">${p.name}</span>
+                    <span class="text-[9px] mt-0.5 font-bold text-slate-500">${pts}点</span>
+                    ${fouls > 0 ? `<span class="absolute -top-1.5 -right-1 px-1 py-0.2 rounded-full text-[9px] font-black shadow-xs ${fouls >= 5 ? 'bg-red-600 text-white' : 'bg-amber-400 text-slate-900'}">F${fouls}</span>` : ''}
+                  </button>
+                `;
+              } else {
+                return `
+                  <button onclick="handlePlayerTap('${side}', '${p.number}', '${safeName}')"
+                    class="relative py-2 px-0.5 rounded-xl border-2 transition active:scale-95 flex flex-col items-center justify-center min-h-[76px] ${cardCls} ${modeRingClass}">
+                    <span class="text-2xl sm:text-3xl font-black tracking-tighter leading-none">${p.number}</span>
+                    <span class="text-[9px] mt-1.5 font-bold text-slate-400">${pts}点</span>
+                    ${fouls > 0 ? `<span class="absolute -top-1.5 -right-1 px-1 py-0.2 rounded-full text-[9px] font-black shadow-xs ${fouls >= 5 ? 'bg-red-600 text-white' : 'bg-amber-400 text-slate-900'}">F${fouls}</span>` : ''}
+                  </button>
+                `;
+              }
+            }).join('')}
+
+            <button onclick="handlePlayerTap('${side}', '?', '不明')"
+              class="py-2 px-0.5 rounded-xl border-2 border-dashed border-amber-400 bg-amber-50 hover:bg-amber-100 active:scale-95 text-amber-900 transition flex flex-col items-center justify-center min-h-[76px] ${modeRingClass}">
+              <span class="text-xl sm:text-2xl font-black leading-none">？</span>
+              <span class="text-[10px] font-bold mt-1.5">不明</span>
+            </button>
+          </div>
+        `;
+      });
+    }
+function renderScoresheetTab() {
+      const whiteTeam = getTeamBySide('white');
+      const blueTeam = getTeamBySide('blue');
+      const scores = calculateScores();
+
+      let dateParts = { y: '2026', m: '', d: '' };
+      if (state.meta.date) {
+        const sp = state.meta.date.split('-');
+        if (sp.length === 3) {
+          dateParts = { y: sp[0], m: Number(sp[1]), d: Number(sp[2]) };
+        }
+      }
+
+      const runningMap = { white: {}, blue: {} };
+      ['white', 'blue'].forEach(side => {
+        let cumScore = 0;
+        const sideScoreEvents = state.events.filter(e => e.type === 'score' && e.side === side);
+        sideScoreEvents.forEach((ev, idx) => {
+          cumScore += ev.points;
+          if (cumScore <= 120) {
+            const nextEv = sideScoreEvents[idx + 1];
+            const isQEnd = !nextEv || nextEv.quarter !== ev.quarter;
+            runningMap[side][cumScore] = {
+              quarter: ev.quarter,
+              number: ev.number,
+              isFT: ev.points === 1,
+              isQEnd
+            };
+          }
+        });
+      });
+
+      const buildRosterTableHTML = (side, team, colorLabel) => {
+        const tos = [1, 2, 3, 4, 5].map(q => {
+          const toEvs = state.events.filter(e => e.type === 'timeout' && e.side === side && e.quarter === q);
+          if (toEvs.length === 0) return '';
+          const colorCls = (q === 1 || q === 3) ? 'text-q-red' : 'text-q-black';
+          return `<span class="${colorCls} font-bold">${toEvs.map(e => e.minuteLabel || '○').join(',')}</span>`;
+        });
+
+        // スコアシート出力時も確実に学年順（6年→1年、同学年は背番号順）にソートして描画
+        const benchPlayers = team.players
+          .filter(p => p.active !== false)
+          .sort((a, b) => {
+            const gA = Number(a.grade) || 0;
+            const gB = Number(b.grade) || 0;
+            if (gA !== gB) return gB - gA;
+            return Number(a.number) - Number(b.number);
+          });
+
+        let rowsHTML = '';
+        for (let i = 0; i < 22; i++) {
+          const p = benchPlayers[i];
+          const rowNo = i + 1;
+          if (!p) {
+            rowsHTML += `
+              <tr>
+                <td>${rowNo}</td><td></td><td></td><td></td>
+                <td></td><td></td><td></td><td></td>
+                <td></td><td></td><td></td><td></td><td></td>
+              </tr>
+            `;
+            continue;
+          }
+
+          const qCells = [1, 2, 3, 4].map(qn => {
+            const pType = state.participation[side][qn][p.number];
+            if (!pType) return `<td></td>`;
+            const isRed = (qn === 1 || qn === 3);
+            let cls = '';
+            if (pType === 'start') cls = isRed ? 'slash-start-red' : 'slash-start-black';
+            else if (pType === 'sub') cls = isRed ? 'slash-sub-red' : 'slash-sub-black';
+            else cls = isRed ? 'slash-cross-red' : 'slash-cross-black';
+            return `<td class="${cls}"></td>`;
+          }).join('');
+
+          const pFouls = state.events.filter(e => e.type === 'foul' && e.side === side && e.number === p.number);
+          const fCells = [0, 1, 2, 3, 4].map(fIdx => {
+            const f = pFouls[fIdx];
+            if (!f) return `<td></td>`;
+            const cCls = (f.quarter === 1 || f.quarter === 3) ? 'text-q-red' : 'text-q-black';
+            return `<td class="${cCls} font-bold">${f.foulType}</td>`;
+          }).join('');
+
+          rowsHTML += `
+            <tr>
+              <td>${rowNo}</td>
+              <td>${p.grade || ''}</td>
+              <td class="text-left pl-1 font-medium truncate max-w-[110px]">${p.name}</td>
+              <td class="font-bold">${p.number}</td>
+              ${qCells}
+              ${fCells}
+            </tr>
+          `;
+        }
+
+        const borderColorCls = side === 'white' ? 'border-slate-900' : 'border-red-700';
+
+        return `
+          <div class="border-2 ${borderColorCls} p-1 bg-white">
+            <div class="flex items-center justify-between mb-0.5">
+              <div class="flex items-baseline gap-1.5 pl-1">
+                <span class="text-[8.5px] font-bold">チーム:</span>
+                <span class="text-sm font-black tracking-wide">${team.name || ''}</span>
+                <span class="text-[10px] font-bold">（ ${colorLabel} ）</span>
+              </div>
+              <table class="border-collapse border border-slate-900 text-center" style="width: 105px;">
+                <tr>
+                  <th colspan="5" class="border border-slate-900 text-[7.5px] bg-slate-100 py-0">タイムアウト</th>
+                </tr>
+                <tr>
+                  <th class="border border-slate-900 text-[7.5px] w-1/5">①</th>
+                  <th class="border border-slate-900 text-[7.5px] w-1/5">②</th>
+                  <th class="border border-slate-900 text-[7.5px] w-1/5">③</th>
+                  <th class="border border-slate-900 text-[7.5px] w-1/5">④</th>
+                  <th class="border border-slate-900 text-[7.5px] w-1/5">OT</th>
+                </tr>
+                <tr style="height: 14px;">
+                  <td class="border border-slate-900 text-[8.5px]">${tos[0]}</td>
+                  <td class="border border-slate-900 text-[8.5px]">${tos[1]}</td>
+                  <td class="border border-slate-900 text-[8.5px]">${tos[2]}</td>
+                  <td class="border border-slate-900 text-[8.5px]">${tos[3]}</td>
+                  <td class="border border-slate-900 text-[8.5px]">${tos[4]}</td>
+                </tr>
+              </table>
+            </div>
+            <table class="sheet-table">
+              <thead>
+                <tr>
+                  <th rowspan="2" style="width: 16px;">No.</th>
+                  <th rowspan="2" style="width: 20px;">学年</th>
+                  <th rowspan="2" style="width: 110px;">選手氏名</th>
+                  <th rowspan="2" style="width: 20px;">No.</th>
+                  <th colspan="4">出場時限</th>
+                  <th colspan="5">ファウル</th>
+                </tr>
+                <tr>
+                  <th style="width: 14px;">①</th>
+                  <th style="width: 14px;">②</th>
+                  <th style="width: 14px;">③</th>
+                  <th style="width: 14px;">④</th>
+                  <th style="width: 16px;">1</th>
+                  <th style="width: 16px;">2</th>
+                  <th style="width: 16px;">3</th>
+                  <th style="width: 16px;">4</th>
+                  <th style="width: 16px;">5</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHTML}
+                <tr>
+                  <td colspan="2" class="font-bold text-left pl-1 text-[8px]">コーチ：</td>
+                  <td colspan="2" class="text-left pl-1 font-medium text-[8px]">${team.coach || ''}</td>
+                  <td colspan="4" class="bg-slate-100"></td>
+                  <td></td><td></td><td></td><td></td><td></td>
+                </tr>
+                <tr>
+                  <td colspan="2" class="font-bold text-left pl-1 text-[8px]">A.コーチ：</td>
+                  <td colspan="2" class="text-left pl-1 font-medium truncate max-w-[120px] text-[8px]">${team.acoach || ''}</td>
+                  <td colspan="4" class="bg-slate-100"></td>
+                  <td></td><td></td><td></td><td></td><td></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        `;
+      };
+
+      const buildTeamFoulHTML = (side) => {
+        const tf = scores[side].tf;
+        const makeBox = (q1, q2) => {
+          let rows = '';
+          for (let n = 1; n <= 4; n++) {
+            const c1 = tf[q1] >= n ? 'tf-cross-red' : '';
+            const c2 = tf[q2] >= n ? 'tf-cross-black' : '';
+            rows += `
+              <tr style="height: 15px;">
+                <td class="border border-slate-900 w-1/2 ${c1}">${tf[q1] >= n ? '×' : n}</td>
+                <td class="border border-slate-900 w-1/2 ${c2}">${tf[q2] >= n ? '×' : n}</td>
+              </tr>
+            `;
+          }
+          return `
+            <table class="border-collapse border border-slate-900 text-center w-full text-[8.5px] bg-white">
+              <tr>
+                <th class="border border-slate-900 bg-slate-100 py-0">${q1}Q</th>
+                <th class="border border-slate-900 bg-slate-100 py-0">${q2}Q</th>
+              </tr>
+              ${rows}
+            </table>
+          `;
+        };
+
+        return `
+          <div class="flex flex-col justify-between h-full py-1">
+            <div>
+              <div class="text-[7.5px] font-bold text-center leading-tight mb-0.5">チーム<br>ファウル</div>
+              ${makeBox(1, 2)}
+            </div>
+            <div class="mt-2">
+              ${makeBox(3, 4)}
+            </div>
+          </div>
+        `;
+      };
+
+      const buildRunningScoreColumns = () => {
+        const ranges = [
+          { start: 1, end: 40 },
+          { start: 41, end: 80 },
+          { start: 81, end: 120 }
+        ];
+
+        return ranges.map(range => {
+          let rows = '';
+          for (let num = range.start; num <= range.end; num++) {
+            const wRec = runningMap.white[num];
+            const bRec = runningMap.blue[num];
+
+            let aPlayerCell = '';
+            let aNumCell = `${num}`;
+            let aNumClass = '';
+            if (wRec) {
+              const isRed = (wRec.quarter === 1 || wRec.quarter === 3);
+              aPlayerCell = `<span class="${isRed ? 'text-q-red' : 'text-q-black'} font-bold">${wRec.number}</span>`;
+              if (wRec.isQEnd) {
+                aNumCell = `<span class="${isRed ? 'rs-circle-red' : 'rs-circle-black'}">${num}</span>`;
+                aNumClass = 'rs-q-end-border';
+              } else if (wRec.isFT) {
+                aNumClass = isRed ? 'rs-ft-dot-red' : 'rs-ft-dot-black';
+              } else {
+                aNumClass = isRed ? 'rs-slash-red' : 'rs-slash-black';
+              }
+            }
+
+            let bPlayerCell = '';
+            let bNumCell = `${num}`;
+            let bNumClass = '';
+            if (bRec) {
+              const isRed = (bRec.quarter === 1 || bRec.quarter === 3);
+              bPlayerCell = `<span class="${isRed ? 'text-q-red' : 'text-q-black'} font-bold">${bRec.number}</span>`;
+              if (bRec.isQEnd) {
+                bNumCell = `<span class="${isRed ? 'rs-circle-red' : 'rs-circle-black'}">${num}</span>`;
+                bNumClass = 'rs-q-end-border';
+              } else if (bRec.isFT) {
+                bNumClass = isRed ? 'rs-ft-dot-red' : 'rs-ft-dot-black';
+              } else {
+                bNumClass = isRed ? 'rs-slash-red' : 'rs-slash-black';
+              }
+            }
+
+            rows += `
+              <tr>
+                <td style="width: 22%;">${aPlayerCell}</td>
+                <td style="width: 28%;" class="${aNumClass}">${aNumCell}</td>
+                <td style="width: 28%;" class="${bNumClass}">${bNumCell}</td>
+                <td style="width: 22%;">${bPlayerCell}</td>
+              </tr>
+            `;
+          }
+
+          return `
+            <table class="rs-table">
+              <thead>
+                <tr>
+                  <th colspan="2" class="bg-slate-100 text-[8px] py-0">A(白)</th>
+                  <th colspan="2" class="bg-slate-100 text-[8px] py-0">B(青)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows}
+              </tbody>
+            </table>
+          `;
+        }).join('');
+      };
+
+      const renderArea = document.getElementById('scoresheet-render-area');
+      renderArea.innerHTML = `
+        <div class="flex items-end justify-between mb-0.5">
+          <div>
+            <div class="text-base font-black tracking-wider leading-none">MINI-BASKETBALL SCORESHEET</div>
+            <div class="text-[8px] text-slate-600">Basketball Manual ver.230415 Digital Edition</div>
+          </div>
+          <div class="text-[8px] text-slate-500">1Q/3Q:赤 ／ 2Q/4Q/OT:黒</div>
+        </div>
+
+        <div class="grid grid-cols-12 border-2 border-slate-900 mb-1 bg-white">
+          <div class="col-span-6 border-r-2 border-slate-900 flex flex-col">
+            <div class="flex items-center border-b border-slate-900 px-2 py-0.5">
+              <span class="text-[9px] font-bold w-12">大会名</span>
+              <span class="text-xs font-black flex-1 text-center truncate">${state.meta.tournament || ''}</span>
+            </div>
+            <div class="flex-1 p-1 flex items-center justify-between gap-1">
+              <div class="text-[8.5px] font-bold leading-tight">スコア</div>
+              <div class="flex flex-col items-center">
+                <span class="text-[8.5px] font-bold truncate max-w-[65px]">${whiteTeam.name || '白'}</span>
+                <div class="w-12 h-8 border-2 border-slate-900 flex items-center justify-center text-lg font-black">
+                  ${scores.white.total}
+                </div>
+              </div>
+              <div class="text-[9px] font-bold leading-snug px-1 border-x border-slate-300">
+                <div class="text-q-red flex justify-between gap-2"><span>${scores.white.q[1]}</span><span>-</span><span>${scores.blue.q[1]}</span></div>
+                <div class="text-q-black flex justify-between gap-2"><span>${scores.white.q[2]}</span><span>-</span><span>${scores.blue.q[2]}</span></div>
+                <div class="text-q-red flex justify-between gap-2"><span>${scores.white.q[3]}</span><span>-</span><span>${scores.blue.q[3]}</span></div>
+                <div class="text-q-black flex justify-between gap-2"><span>${scores.white.q[4]}</span><span>-</span><span>${scores.blue.q[4]}</span></div>
+                <div class="text-[7.5px] text-center text-slate-500">（延長 ${scores.white.q[5]}-${scores.blue.q[5]}）</div>
+              </div>
+              <div class="flex flex-col items-center">
+                <span class="text-[8.5px] font-bold truncate max-w-[65px]">${blueTeam.name || '青'}</span>
+                <div class="w-12 h-8 border-2 border-slate-900 flex items-center justify-center text-lg font-black">
+                  ${scores.blue.total}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-span-6 flex flex-col text-[8.5px]">
+            <div class="grid grid-cols-12 border-b border-slate-900">
+              <div class="col-span-2 border-r border-slate-900 p-0.5 font-bold flex items-center justify-center">日付</div>
+              <div class="col-span-6 border-r border-slate-900 p-0.5 flex items-center justify-center font-bold">
+                ${dateParts.y}年 ${dateParts.m}月 ${dateParts.d}日
+              </div>
+              <div class="col-span-2 border-r border-slate-900 p-0.5 font-bold flex items-center justify-center">時間</div>
+              <div class="col-span-2 p-0.5 flex items-center justify-center font-bold">${state.meta.time || '：'}</div>
+            </div>
+            <div class="grid grid-cols-12 border-b border-slate-900">
+              <div class="col-span-2 border-r border-slate-900 p-0.5 font-bold flex items-center justify-center">会場</div>
+              <div class="col-span-6 border-r border-slate-900 p-0.5 flex items-center justify-center font-bold truncate">${state.meta.venue || ''}</div>
+              <div class="col-span-2 border-r border-slate-900 p-0.5 text-[7.5px] flex items-center justify-center">Game</div>
+              <div class="col-span-2 p-0.5"></div>
+            </div>
+            <div class="grid grid-cols-2 border-b border-slate-900 flex-1">
+              <div class="border-r border-slate-900 p-0.5 text-[7.5px]">クルーチーフ:</div>
+              <div class="p-0.5 text-[7.5px]">アンパイア:</div>
+            </div>
+            <div class="grid grid-cols-2 border-b border-slate-900 flex-1">
+              <div class="border-r border-slate-900 p-0.5 text-[7.5px]">スコアラー:</div>
+              <div class="p-0.5 text-[7.5px]">タイマー:</div>
+            </div>
+            <div class="grid grid-cols-2 flex-1">
+              <div class="border-r border-slate-900 p-0.5 text-[7.5px]">A・スコアラー:</div>
+              <div class="p-0.5 text-[7.5px]">ショットクロック:</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-12 gap-1.5 flex-1">
+          <div class="col-span-7 flex flex-col justify-between gap-1">
+            <div class="grid grid-cols-12 gap-1">
+              <div class="col-span-10">
+                ${buildRosterTableHTML('white', whiteTeam, '白')}
+              </div>
+              <div class="col-span-2">
+                ${buildTeamFoulHTML('white')}
+              </div>
+            </div>
+
+            <div class="grid grid-cols-12 gap-1">
+              <div class="col-span-10">
+                ${buildRosterTableHTML('blue', blueTeam, '青')}
+              </div>
+              <div class="col-span-2">
+                ${buildTeamFoulHTML('blue')}
+              </div>
+            </div>
+          </div>
+
+          <div class="col-span-5 border-2 border-slate-900 p-1 bg-white flex flex-col">
+            <div class="text-center font-bold text-[9px] pb-0.5 border-b border-slate-900 mb-0.5">
+              ランニング スコア <span class="tracking-wider">RUNNING SCORE</span>
+            </div>
+            <div class="grid grid-cols-3 gap-0.5 flex-1">
+              ${buildRunningScoreColumns()}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAll() {
+      renderSetupTab();
+      renderGameTab();
+      renderScoresheetTab();
+    }
+  </script>
+</body>
+</html>
