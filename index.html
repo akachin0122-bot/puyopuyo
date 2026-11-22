@@ -999,15 +999,19 @@
           }
           const existingMap = new Map();
           (state.hanashi.players || []).forEach(ep => {
-            existingMap.set(String(ep.name || '').trim(), ep.officialNumber);
+            const key = String(ep.name || '').trim().replace(/[\s　]+/g, '');
+            existingMap.set(key, ep.officialNumber);
           });
           state.hanashi.players = data.players.map(p => {
             const pName = String(p.name || '').trim();
-            const sheetOfficial = String(p.officialNumber ?? p.official_number ?? '').trim();
-            const fallbackOfficial = existingMap.get(pName) || '';
+            const normName = pName.replace(/[\s　]+/g, '');
+            const rawOfficial = p.officialNumber ?? p.official_number ?? p.official_num ?? p['公式戦番号'] ?? '';
+            const sheetOfficial = String(rawOfficial ?? '').trim();
+            const fallbackOfficial = existingMap.get(normName) || existingMap.get(pName) || '';
+            const finalOfficial = (sheetOfficial !== '' && sheetOfficial !== '-') ? sheetOfficial : fallbackOfficial;
             return {
               number: String(p.number || '').trim(),
-              officialNumber: sheetOfficial !== '' ? sheetOfficial : fallbackOfficial,
+              officialNumber: finalOfficial,
               grade: String(p.grade || '').trim(),
               name: pName,
               active: p.active !== false
@@ -1017,7 +1021,10 @@
           sortTeamPlayers('hanashi');
           saveToLocalStorage();
           renderAll();
-          if (!isSilent) showToast(`スプレッドシートから${state.hanashi.players.length}名を読み込みました！`, 'success');
+          if (!isSilent) {
+            const offCount = state.hanashi.players.filter(pl => String(pl.officialNumber || '').trim() !== '').length;
+            showToast(`スプレッドシートから${state.hanashi.players.length}名を読込（公式戦番号:${offCount}名）`, 'success');
+          }
         } else {
           if (!isSilent) showToast('シートに有効なデータがありませんでした', 'error');
         }
