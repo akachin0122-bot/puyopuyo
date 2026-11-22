@@ -1458,8 +1458,7 @@ function switchTab(tabName) {
         return;
       }
 
-      const lines = text.split('
-');
+      const lines = text.split('\n');
       let addedCount = 0;
 
       lines.forEach(line => {
@@ -2303,7 +2302,7 @@ function openTimeoutModal(side) {
                 ? 'bg-slate-50 text-slate-900 border-slate-300 hover:bg-emerald-50 active:bg-emerald-500 active:text-white'
                 : 'bg-white text-blue-950 border-blue-300 hover:bg-emerald-50 active:bg-emerald-500 active:text-white';
 
-              const safeName = p.name.replace(/'/g, "\'");
+              const safeName = p.name.replace(/'/g, "\\'");
 
               if (isHanashi) {
                 return `
@@ -2401,9 +2400,9 @@ function renderScoresheetTab() {
             continue;
           }
 
+          const sheetNum = getEffectiveNumber(p);
           const qCells = [1, 2, 3, 4].map(qn => {
-            const sheetNum = getEffectiveNumber(p);
-          const pType = state.participation[side][qn][sheetNum];
+            const pType = state.participation[side][qn][sheetNum];
             if (!pType) return `<td></td>`;
             const isRed = (qn === 1 || qn === 3);
             let cls = '';
