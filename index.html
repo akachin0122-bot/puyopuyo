@@ -404,6 +404,9 @@
               </div>
               <p class="text-[11px] text-slate-500 mt-0.5">紙のメンバー表をカメラ撮影 or テキスト一括貼り付け</p>
             </div>
+            <button onclick="clearOpponentAll()" class="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 active:scale-95 text-red-600 border border-red-200 rounded-lg text-[11px] font-bold shrink-0">
+              🗑 相手を全クリア
+            </button>
           </div>
 
           <!-- カメラ / 写真一覧 選択エリア -->
@@ -445,8 +448,14 @@
           <div class="mt-3 space-y-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
             <div>
               <label class="block text-[11px] font-bold text-slate-500">相手チーム名</label>
-              <input type="text" id="opponent-name" value="" placeholder="チーム名を入力" oninput="updateOpponentName()"
-                class="w-full mt-0.5 px-2.5 py-1 text-xs font-bold bg-white border border-slate-300 rounded-lg" />
+              <div class="flex items-center gap-1.5 mt-0.5">
+                <input type="text" id="opponent-name" value="" placeholder="チーム名を入力" oninput="updateOpponentName()"
+                  class="flex-1 px-2.5 py-1 text-xs font-bold bg-white border border-slate-300 rounded-lg" />
+                <button type="button" onclick="clearOpponentTeamName()"
+                  class="px-2.5 py-1 bg-slate-200 hover:bg-red-100 hover:text-red-600 active:scale-95 text-slate-700 text-xs font-bold rounded-lg shrink-0 transition">
+                  ✕ 削除
+                </button>
+              </div>
             </div>
             <div class="grid grid-cols-2 gap-2">
               <div>
@@ -1434,6 +1443,39 @@ function switchTab(tabName) {
       saveToLocalStorage();
     }
 
+    function clearOpponentTeamName() {
+      state.opponent.name = '';
+      const el = document.getElementById('opponent-name');
+      if (el) el.value = '';
+      saveToLocalStorage();
+      renderAll();
+      showToast('相手チーム名を削除しました', 'info');
+    }
+
+    function clearOpponentAll() {
+      openConfirmModal(
+        '相手チームデータの全クリア',
+        '現在登録されている「相手チーム名・コーチ・選手一覧」をすべて消去して空にしますか？（次の試合の相手を登録する前に便利です）',
+        () => {
+          state.opponent = {
+            name: '',
+            coach: '',
+            acoach: '',
+            players: []
+          };
+          const nEl = document.getElementById('opponent-name');
+          const cEl = document.getElementById('opponent-coach');
+          const acEl = document.getElementById('opponent-acoach');
+          if (nEl) nEl.value = '';
+          if (cEl) cEl.value = '';
+          if (acEl) acEl.value = '';
+          saveToLocalStorage();
+          renderAll();
+          showToast('相手チームのデータをすべてクリアしました', 'success');
+        }
+      );
+    }
+
     function togglePlayerRosterActive(target, idx) {
       const p = state[target].players[idx];
       if (!p) return;
@@ -1503,6 +1545,7 @@ function switchTab(tabName) {
       const lines = text.split(/\r?\n/);
       let addedCount = 0;
       let updatedCount = 0;
+      let teamNameSetInThisImport = false;
 
       lines.forEach(rawLine => {
         const trimmed = normalizeNumStr(rawLine.trim());
@@ -1566,12 +1609,14 @@ function switchTab(tabName) {
           const tName = teamMatch[1].trim();
           if (tName) {
             state.opponent.name = tName;
+            teamNameSetInThisImport = true;
             const nEl = document.getElementById('opponent-name');
             if (nEl) nEl.value = tName;
           }
           return;
-        } else if (!trimmed.includes('#') && !trimmed.includes('年') && trimmed.length >= 2 && !state.opponent.name) {
+        } else if (!trimmed.includes('#') && !trimmed.includes('年') && trimmed.length >= 2 && !teamNameSetInThisImport) {
           state.opponent.name = trimmed;
+          teamNameSetInThisImport = true;
           const nEl = document.getElementById('opponent-name');
           if (nEl) nEl.value = trimmed;
           return;
