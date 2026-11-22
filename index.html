@@ -1497,64 +1497,84 @@ function switchTab(tabName) {
         return;
       }
 
-      const lines = text.split('\n');
-      let addedCount = 0;
+      // 全角数字→半角数字、全角#→半角#に正規化
+      const normalizeNumStr = (s) => s.replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0)).replace(/＃/g, '#');
 
-      lines.forEach(line => {
-        const trimmed = line.trim();
+      const lines = text.split(/\r?\n/);
+      let addedCount = 0;
+      let updatedCount = 0;
+
+      lines.forEach(rawLine => {
+        const trimmed = normalizeNumStr(rawLine.trim());
         if (!trimmed) return;
 
-        // 1. チーム名抽出
-        const teamMatch = trimmed.match(/(?:チーム|チーム名)[\s:：]*([^\s(（]+)/);
-        if (teamMatch && !trimmed.includes('#') && !trimmed.includes('コーチ') && !trimmed.includes('監督')) {
-          const tName = trimmed.replace(/(?:チーム|チーム名)[\s:：]*/, '').trim();
+        // 1. A.コーチ抽出（※「コーチ」より先に判定して吸い込まれるのを防ぐ）
+        if (/^(?:A\.?コーチ|副コーチ|アシスタント)/.test(trimmed)) {
+          let acName = trimmed.replace(/^(?:A\.?コーチ|副コーチ|アシスタント)[\s:：]*/, '').trim();
+          if (/^(?:記載なし|なし|無し|特になし|-|—|ー)$/.test(acName)) {
+            acName = '';
+          }
+          state.opponent.acoach = acName;
+          const acEl = document.getElementById('opponent-acoach');
+          if (acEl) acEl.value = acName;
+          return;
+        }
+
+        // 2. コーチ抽出
+        if (/^(?:コーチ|監督)/.test(trimmed)) {
+          let cName = trimmed.replace(/^(?:コーチ|監督)[\s:：]*/, '').trim();
+          if (/^(?:記載なし|なし|無し|特になし|-|—|ー)$/.test(cName)) {
+            cName = '';
+          }
+          state.opponent.coach = cName;
+          const cEl = document.getElementById('opponent-coach');
+          if (cEl) cEl.value = cName;
+          return;
+        }
+
+        // 3. 選手情報抽出（背番号＋氏名＋学年、または背番号＋氏名）
+        const playerMatch = trimmed.match(/^(?:No\.?\s*)?#?(\d+)[\s:：、,]*([^\d(（\n]+?)[(（]?([1-6])年?[)）]?$/)
+          || trimmed.match(/^(?:No\.?\s*)?#?(\d+)[\s:：、,]+([^\d(（\n]+)$/);
+        if (playerMatch) {
+          const num = playerMatch[1].trim();
+          const rawName = playerMatch[2].replace(/[(（\s]+$/, '').trim();
+          const grade = playerMatch[3] ? playerMatch[3].trim() : '';
+
+          if (rawName) {
+            const existingIdx = state.opponent.players.findIndex(p => String(p.number).trim() === num);
+            if (existingIdx >= 0) {
+              state.opponent.players[existingIdx].name = rawName;
+              if (grade) state.opponent.players[existingIdx].grade = grade;
+              state.opponent.players[existingIdx].active = true;
+              updatedCount++;
+            } else {
+              state.opponent.players.push({
+                number: num,
+                grade,
+                name: rawName,
+                active: true
+              });
+              addedCount++;
+            }
+          }
+          return;
+        }
+
+        // 4. チーム名抽出（選手行・コーチ行以外の最初の行や「チーム：」行）
+        const teamMatch = trimmed.match(/^(?:チーム|チーム名)[\s:：]*(.+)$/);
+        if (teamMatch) {
+          const tName = teamMatch[1].trim();
           if (tName) {
             state.opponent.name = tName;
-            document.getElementById('opponent-name').value = tName;
+            const nEl = document.getElementById('opponent-name');
+            if (nEl) nEl.value = tName;
           }
           return;
-        } else if (!trimmed.includes('#') && !trimmed.includes('コーチ') && !trimmed.includes('監督') && !trimmed.includes('年') && trimmed.length > 2 && !state.opponent.name) {
+        } else if (!trimmed.includes('#') && !trimmed.includes('年') && trimmed.length >= 2 && !state.opponent.name) {
           state.opponent.name = trimmed;
-          document.getElementById('opponent-name').value = trimmed;
+          const nEl = document.getElementById('opponent-name');
+          if (nEl) nEl.value = trimmed;
           return;
-        }
-
-        // 2. A.コーチ抽出（※「コーチ」より先に判定して吸い込まれるのを防ぐ）
-        if (/^(?:A\.?コーチ|副コーチ|アシスタント)/.test(trimmed)) {
-          const acName = trimmed.replace(/^(?:A\.?コーチ|副コーチ|アシスタント)[\s:：]*/, '').trim();
-          if (acName) {
-            state.opponent.acoach = acName;
-            document.getElementById('opponent-acoach').value = acName;
-          }
-          return;
-        }
-
-        // 3. コーチ抽出
-        if (/^(?:コーチ|監督)/.test(trimmed)) {
-          const cName = trimmed.replace(/^(?:コーチ|監督)[\s:：]*/, '').trim();
-          if (cName) {
-            state.opponent.coach = cName;
-            document.getElementById('opponent-coach').value = cName;
-          }
-          return;
-        }
-
-        // 4. 選手情報抽出 (例: #1森田蒼大(5年))
-        const playerMatch = trimmed.match(/#?(\d+)[\s:：、,]*([^\d(（\s]+[\s]?[^\d(（\s]*)[(（]?([1-6])年?[)）]?/);
-        if (playerMatch) {
-          const num = playerMatch[1];
-          const name = playerMatch[2].trim();
-          const grade = playerMatch[3];
-
-          if (!state.opponent.players.some(p => String(p.number) === num)) {
-            state.opponent.players.push({
-              number: num,
-              grade,
-              name,
-              active: true
-            });
-            addedCount++;
-          }
         }
       });
 
@@ -1562,9 +1582,14 @@ function switchTab(tabName) {
       saveToLocalStorage();
       renderSetupTab();
 
-      document.getElementById('bulk-text-input').value = '';
-      if (addedCount > 0 || state.opponent.name) {
-        showToast(`チーム名・${addedCount}名の選手を一括設定しました！`, 'success');
+      const bulkEl = document.getElementById('bulk-text-input');
+      if (bulkEl) bulkEl.value = '';
+      if (addedCount > 0 || updatedCount > 0 || state.opponent.name) {
+        const msgParts = [];
+        if (state.opponent.name) msgParts.push(`チーム「${state.opponent.name}」`);
+        if (addedCount > 0) msgParts.push(`${addedCount}名追加`);
+        if (updatedCount > 0) msgParts.push(`${updatedCount}名更新`);
+        showToast(`${msgParts.join('・')}しました！`, 'success');
       } else {
         showToast('情報を読み込めませんでした。書式を確認してください', 'error');
       }
