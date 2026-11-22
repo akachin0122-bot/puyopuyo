@@ -854,6 +854,9 @@
 
     function saveEditedPlayer() {
       if (editingPlayerIndex < 0) return;
+      const team = state[editingPlayerTarget];
+      const targetPlayer = team.players[editingPlayerIndex];
+      const isOfficial = state.numberMode === 'official';
       const num = document.getElementById('edit-player-num').value.trim();
       const grade = document.getElementById('edit-player-grade').value.trim();
       const name = document.getElementById('edit-player-name').value.trim();
@@ -862,10 +865,6 @@
         showToast('背番号と選手氏名を入力してください', 'error');
         return;
       }
-
-      const team = state[editingPlayerTarget];
-      const targetPlayer = team.players[editingPlayerIndex];
-      const isOfficial = state.numberMode === 'official';
       const oldEffectiveNum = getEffectiveNumber(targetPlayer);
 
       const duplicate = team.players.some((p, i) => i !== editingPlayerIndex && getEffectiveNumber(p) === num);
@@ -1013,7 +1012,11 @@
           state.hanashi.players = data.players.map(p => {
             const pName = String(p.name || '').trim();
             const normName = pName.replace(/[\s　]+/g, '');
-            const rawOfficial = p.officialNumber ?? p.official_number ?? p.official_num ?? p['公式戦番号'] ?? '';
+            let rawOfficial = p.officialNumber ?? p.official_number ?? p.official_num ?? p['公式戦番号'] ?? p['officialnumber'] ?? '';
+            if (rawOfficial === '' && p && typeof p === 'object') {
+              const matchedKey = Object.keys(p).find(k => /official|公式/i.test(k));
+              if (matchedKey) rawOfficial = p[matchedKey];
+            }
             const sheetOfficial = String(rawOfficial ?? '').trim();
             const fallbackOfficial = existingMap.get(normName) || existingMap.get(pName) || '';
             const finalOfficial = (sheetOfficial !== '' && sheetOfficial !== '-') ? sheetOfficial : fallbackOfficial;
@@ -1725,24 +1728,20 @@ const parsed = JSON.parse(rawText);
         const hasOff = rawOff !== '';
         const isOfficialMode = state.numberMode === 'official';
         const dispNum = isOfficialMode ? (hasOff ? `#${rawOff}` : '未設定') : `#${String(p.number ?? '').trim()}`;
-        const badgeHtml = isOfficialMode
-          ? (hasOff
-              ? `<span class="text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.2 rounded">公式戦番号（通常#${p.number}）</span>`
-              : `<span class="text-[10px] text-slate-500">公式未設定・通常番号表示中</span>`)
-          : (hasOff ? `<span class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded">公式#${rawOff}</span>` : '');
+        const subInfo = '';
         return `
-          <div class="flex items-center justify-between px-3 py-1.5 text-xs ${isActive ? 'hover:bg-slate-50' : 'bg-slate-50 opacity-50'}">
-            <label class="flex items-center gap-2.5 cursor-pointer flex-1 min-w-0">
+          <div class="flex items-center justify-between gap-1.5 px-2.5 py-1.5 text-xs ${isActive ? 'hover:bg-slate-50' : 'bg-slate-50 opacity-50'}">
+            <label class="flex items-center gap-1.5 cursor-pointer flex-1 min-w-0">
               <input type="checkbox" ${isActive ? 'checked' : ''} onchange="togglePlayerRosterActive('hanashi', ${idx})"
                 class="w-4 h-4 rounded accent-orange-500 cursor-pointer shrink-0" />
-              <span class="min-w-[2.2rem] px-1 text-center font-black ${isOfficialMode && hasOff ? 'bg-amber-100 text-amber-900 border border-amber-300' : (isOfficialMode ? 'bg-slate-100 text-slate-400' : 'bg-slate-100 text-slate-800')} py-0.5 rounded shrink-0">${dispNum}</span>
-              <span class="text-slate-400 w-7 shrink-0">${p.grade ? p.grade + '年' : '-'}</span>
-              <span class="font-bold text-slate-800 truncate">${p.name}</span>
-              ${badgeHtml}
+              <span class="min-w-[2.4rem] px-1 text-center font-black ${isOfficialMode && hasOff ? 'bg-amber-100 text-amber-900 border border-amber-300' : (isOfficialMode ? 'bg-slate-100 text-slate-400' : 'bg-slate-100 text-slate-800')} py-0.5 rounded shrink-0">${dispNum}</span>
+              <span class="text-slate-400 w-6 shrink-0">${p.grade ? p.grade + '年' : '-'}</span>
+              <span class="font-bold text-slate-800 whitespace-nowrap">${p.name}</span>
+              ${subInfo}
             </label>
             <div class="flex items-center gap-1 shrink-0">
-              <button onclick="openEditPlayerModal('hanashi', ${idx})" class="text-slate-500 hover:text-orange-600 bg-slate-100 hover:bg-orange-50 px-2 py-0.5 rounded text-[11px] font-bold">✏️編集</button>
-              <button onclick="removePlayer('hanashi', ${idx})" class="text-slate-400 hover:text-red-500 px-1.5 py-0.5">✕</button>
+              <button onclick="openEditPlayerModal('hanashi', ${idx})" class="text-slate-600 hover:text-orange-600 bg-slate-100 hover:bg-orange-50 px-1.5 py-0.5 rounded text-[11px] font-bold whitespace-nowrap">✏️編集</button>
+              <button onclick="removePlayer('hanashi', ${idx})" class="text-slate-400 hover:text-red-500 px-1 py-0.5">✕</button>
             </div>
           </div>
         `;
