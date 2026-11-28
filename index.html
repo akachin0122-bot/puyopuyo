@@ -1658,7 +1658,7 @@ function switchTab(tabName) {
       });
     }
 
-    function resizeImageToBase64(file, maxWidth = 1400) {
+    function resizeImageToBase64(file, maxWidth = 1100) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -1675,7 +1675,7 @@ function switchTab(tabName) {
             canvas.height = h;
             const ctx = canvas.getContext('2d');
             ctx.drawImage(img, 0, 0, w, h);
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
             resolve(dataUrl.split(',')[1]);
           };
           img.onerror = reject;
@@ -1706,6 +1706,10 @@ function switchTab(tabName) {
         
         // スキルと同等の厳格なプロンプトをアプリ内OCRにも搭載
         const prompt = `あなたはバスケットボールのスコアシート／メンバー表を正確に読み取るOCRアシスタントです。
+【重要なレイアウト規則】
+表の列は基本的に左から「No.（1〜22の通し番号・行番号）」「学年」「選手氏名」「背番号」の順に並んでいます。
+左端の「No.（通し番号・行番号）」は絶対に背番号と混同せず無視し、必ず「背番号」の列にある数字を number として抽出してください。
+
 画像からチーム名、コーチ名、A.コーチ名、選手一覧（背番号、選手名、学年）を抽出し、必ず以下のJSON形式のみを返してください。
 - teamName: チーム名（文字列。不明なら空文字）
 - coach: コーチ名（文字列。不明なら空文字）
@@ -1728,6 +1732,9 @@ function switchTab(tabName) {
             }
           ],
           generationConfig: {
+            thinkingConfig: {
+              thinkingLevel: "LOW"
+            },
             responseMimeType: "application/json",
             responseSchema: {
               type: "OBJECT",
@@ -1754,9 +1761,9 @@ function switchTab(tabName) {
         };
 
         const candidateModels = [
-          'gemini-4-hydrogen',
-          'gemini-3.8-flash',
-          'gemini-2.5-flash'
+          'gemini-2.5-flash',
+          'gemini-2.0-flash',
+          'gemini-1.5-flash'
         ];
 
         let response = null;
@@ -1766,10 +1773,13 @@ function switchTab(tabName) {
           const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${encodeURIComponent(apiKey)}`;
           for (let attempt = 0; attempt < 2; attempt++) {
             try {
+              const reqPayload = (modelName.startsWith('gemini-2.5'))
+                ? { ...payload, generationConfig: { ...payload.generationConfig, thinkingConfig: { thinkingBudget: 0 } } }
+                : payload;
               const res = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(reqPayload)
               });
               if (res.ok) {
                 response = res;
